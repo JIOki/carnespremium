@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-11-20T23:26:43.645309",
+  "summary": {
+    "total": 38,
+    "passed": 30,
+    "failed": 8,
+    "skipped": 0
+  },
+  "test_data": {
+    "test_email": "test_1763652402@test.com",
+    "category_id": "cmi5dksgl0002cs1oeyod5j1m",
+    "product_id": "cmi5dkshf0004cs1o8uc5g0xn",
+    "variant_id": "cmi5dksi70006cs1ov2oiroe2",
+    "cart_item_id": "cmi7l3rcz000611nq1uluubpe"
+  }
+}

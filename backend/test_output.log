@@ -1,0 +1,16 @@
+
+> carnes-premium-backend@1.0.0 test
+> jest
+
+No tests found, exiting with code 1
+Run with `--passWithNoTests` to exit with code 0
+In /workspace/backend
+  52 files checked.
+  testMatch: **/__tests__/**/*.[jt]s?(x), **/?(*.)+(spec|test).[tj]s?(x) - 0 matches
+  testPathIgnorePatterns: /node_modules/ - 52 matches
+  testRegex:  - 0 matches
+Pattern:  - 0 matches
+npm ERR! Lifecycle script `test` failed with error: 
+npm ERR! Error: command failed 
+npm ERR!   in workspace: carnes-premium-backend@1.0.0 
+npm ERR!   at location: /workspace/backend 

@@ -1,0 +1,135 @@
+{
+  "timestamp": "2025-11-20T09:44:20.663618",
+  "tests": {
+    "loyalty_stats": {
+      "success": true,
+      "data": {
+        "loyalty": {
+          "id": "cmi6rmnsu00017ll3pffhm5l4",
+          "userId": "cmi5dksc90000cs1oxwlt8rwz",
+          "currentPoints": 0,
+          "totalEarned": 0,
+          "totalRedeemed": 0,
+          "lifetimePoints": 0,
+          "tier": "BRONZE",
+          "tierProgress": 0,
+          "nextTierPoints": 500,
+          "totalBadges": 0,
+          "totalChallengesCompleted": 0,
+          "totalReferrals": 0,
+          "currentStreak": 0,
+          "longestStreak": 0,
+          "lastPointsEarned": null,
+          "lastTierUpgrade": null,
+          "metadata": null,
+          "createdAt": "2025-11-20T01:41:36.127Z",
+          "updatedAt": "2025-11-20T01:41:36.127Z",
+          "transactions": [],
+          "badges": [],
+          "streaks": []
+        },
+        "currentTier": {
+          "name": "Bronce",
+          "minPoints": 0,
+          "maxPoints": 499,
+          "discount": 0.02,
+          "pointsMultiplier": 1,
+          "benefits": [
+            "Descuento 2% en todas las compras"
+          ],
+          "color": "#CD7F32",
+          "icon": "🥉",
+          "key": "BRONZE"
+        },
+        "nextTier": {
+          "name": "Plata",
+          "minPoints": 500,
+          "maxPoints": 1999,
+          "discount": 0.05,
+          "pointsMultiplier": 1.1,
+          "benefits": [
+            "Descuento 5% en todas las compras",
+            "Envío gratis en compras mayores a $100",
+            "+10% puntos extra"
+          ],
+          "color": "#C0C0C0",
+          "icon": "🥈",
+          "key": "SILVER",
+          "pointsNeeded": 500
+        },
+        "stats": {
+          "currentPoints": 0,
+          "lifetimePoints": 0,
+          "totalEarned": 0,
+          "totalRedeemed": 0,
+          "totalBadges": 0,
+          "totalChallengesCompleted": 0,
+          "totalReferrals": 0,
+          "currentStreak": 0,
+          "longestStreak": 0,
+          "tierProgress": 0,
+          "pointsExpiringSoon": 0
+        },
+        "recentTransactions": []
+      }
+    },
+    "transactions": {
+      "success": true,
+      "data": {
+        "transactions": [],
+        "pagination": {
+          "total": 0,
+          "limit": 10,
+          "offset": 0,
+          "hasMore": false
+        }
+      }
+    },
+    "user_badges": {
+      "error": "Ruta no encontrada",
+      "path": "/api/gamification/badges/my-badges"
+    },
+    "available_badges": {
+      "success": true,
+      "data": {
+        "badges": []
+      }
+    },
+    "challenges": {
+      "success": true,
+      "data": {
+        "active": [],
+        "completed": [],
+        "stats": {
+          "totalCompleted": 0,
+          "totalPoints": 0,
+          "activeCount": 0
+        }
+      }
+    },
+    "user_challenges": {
+      "error": "Ruta no encontrada",
+      "path": "/api/gamification/challenges/my-progress"
+    },
+    "rewards": {
+      "error": "slice(None, 3, None)"
+    },
+    "redeemed_rewards": {
+      "success": false,
+      "error": "CommonErrors.NotFoundError is not a constructor",
+      "code": "INTERNAL_ERROR",
+      "stack": "TypeError: CommonErrors.NotFoundError is not a constructor\n    at /workspace/backend/src/routes/gamification.js:293:11",
+      "timestamp": "2025-11-20T01:44:20.888Z",
+      "path": "/api/gamification/rewards/my-rewards",
+      "method": "GET"
+    },
+    "leaderboard": {
+      "error": "Ruta no encontrada",
+      "path": "/api/gamification/leaderboard?limit=10"
+    },
+    "referrals": {
+      "error": "Ruta no encontrada",
+      "path": "/api/gamification/referrals"
+    }
+  }
+}

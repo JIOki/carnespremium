@@ -1,0 +1,1933 @@
+// Prisma schema para SQLite (sin enums)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USUARIOS ====================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  role      String   @default("CUSTOMER") // CUSTOMER, DRIVER, ADMIN, SUPER_ADMIN
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  addresses  Address[]
+  orders     Order[]
+  reviews    Review[]
+  wishlist   WishlistItem[]
+  cart       CartItem[]
+  loyalty    LoyaltyPoints?
+  delivery   Delivery[]
+  notifications Notification[]
+  notificationPreferences NotificationPreference?
+  fcmTokens FCMToken[]
+  membership UserMembership?
+  
+  @@map("users")
+}
+
+// ==================== PRODUCTOS ====================
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  imageUrl    String?
+  parentId    String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relaciones
+  parent      Category? @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            String           @id @default(cuid())
+  name          String
+  slug          String           @unique
+  description   String?
+  shortDesc     String?
+  sku           String           @unique
+  categoryId    String
+  imageUrl      String?
+  gallery       String?          // JSON string array
+  isActive      Boolean          @default(true)
+  isFeatured    Boolean          @default(false)
+  weight        Float?
+  unit          String           @default("kg")
+  origin        String?
+  brand         String?
+  tags          String?          // JSON string array
+  nutritionInfo String?          // JSON string
+  storageInstructions String?
+  minStock      Int              @default(0)
+  maxStock      Int              @default(1000)
+  reorderPoint  Int              @default(10)
+  averageRating Float           @default(0.0)
+  totalReviews  Int             @default(0)
+  totalSales    Int             @default(0)
+  metadata      String?         // JSON string
+  seoTitle      String?
+  seoDescription String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  // Relaciones
+  category      Category        @relation(fields: [categoryId], references: [id])
+  variants      ProductVariant[]
+  reviews       Review[]
+  wishlist      WishlistItem[]
+  cart          CartItem[]
+  orderItems    OrderItem[]
+
+  @@map("products")
+}
+
+model ProductVariant {
+  id           String    @id @default(cuid())
+  productId    String
+  name         String
+  sku          String    @unique
+  price        Float
+  comparePrice Float?
+  cost         Float?
+  stock        Int       @default(0)
+  weight       Float?
+  barcode      String?
+  imageUrl     String?
+  isDefault    Boolean   @default(false)
+  attributes   String?   // JSON string
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relaciones
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cart         CartItem[]
+  orderItems   OrderItem[]
+
+  @@map("product_variants")
+}
+
+// ==================== CARRITO Y WISHLIST ====================
+
+model CartItem {
+  id        String         @id @default(cuid())
+  userId    String
+  productId String
+  variantId String?
+  quantity  Int
+  price     Float
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  // Relaciones
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, productId, variantId])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  
+  // Alertas y notificaciones
+  priceWhenAdded Float?   // Precio cuando se agregó
+  notifyPriceChange Boolean @default(false) // Notificar cambios de precio
+  notifyAvailability Boolean @default(false) // Notificar cuando esté disponible
+  targetPrice Float?      // Precio objetivo para notificación
+  
+  // Notas personales
+  notes     String?
+  priority  String @default("NORMAL") // LOW, NORMAL, HIGH
+  
+  // Metadatos
+  metadata  String?  // JSON string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("wishlist_items")
+}
+
+// Modelo para compartir wishlists
+model SharedWishlist {
+  id          String   @id @default(cuid())
+  ownerId     String   // Usuario que comparte
+  shareToken  String   @unique // Token único para el enlace
+  title       String?
+  description String?
+  
+  // Configuración de compartición
+  isPublic    Boolean  @default(false)
+  allowCopy   Boolean  @default(true)
+  
+  // Estadísticas
+  viewCount   Int      @default(0)
+  lastViewedAt DateTime?
+  
+  // Vigencia
+  expiresAt   DateTime?
+  
+  // Metadatos
+  metadata    String?  // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shareToken])
+  @@index([ownerId])
+  @@map("shared_wishlists")
+}
+
+// Modelo para trackear alertas de cambio de precio
+model WishlistPriceAlert {
+  id            String   @id @default(cuid())
+  userId        String
+  productId     String
+  previousPrice Float
+  newPrice      Float
+  changePercent Float    // Porcentaje de cambio
+  notified      Boolean  @default(false)
+  notifiedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, notified])
+  @@index([productId])
+  @@map("wishlist_price_alerts")
+}
+
+// ==================== PEDIDOS ====================
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique
+  userId          String
+  status          String        @default("PENDING") // PENDING, CONFIRMED, PROCESSING, READY, OUT_FOR_DELIVERY, DELIVERED, CANCELLED, REFUNDED
+  paymentStatus   String        @default("PENDING") // PENDING, AUTHORIZED, CAPTURED, FAILED, CANCELLED, REFUNDED
+  paymentMethod   String?
+  subtotal        Float
+  tax             Float         @default(0.0)
+  deliveryFee     Float         @default(0.0)
+  discount        Float         @default(0.0)
+  total           Float
+  currency        String        @default("USD")
+  
+  // Direcciones
+  billingAddress  String        // JSON string
+  shippingAddress String        // JSON string
+  
+  // Entrega
+  deliveryDate    DateTime?
+  deliveryTimeSlot String?
+  specialInstructions String?
+  
+  // Metadatos
+  notes           String?
+  metadata        String?       // JSON string
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relaciones
+  user            User          @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  tracking        OrderTracking[]
+  delivery        Delivery?
+  payment         Payment?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String         @id @default(cuid())
+  orderId   String
+  productId String
+  variantId String?
+  quantity  Int
+  price     Float
+  total     Float
+  createdAt DateTime       @default(now())
+
+  // Relaciones
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderTracking {
+  id        String   @id @default(cuid())
+  orderId   String
+  status    String
+  message   String?
+  metadata  String?  // JSON string
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_tracking")
+}
+
+// ==================== DIRECCIONES ====================
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   @default("HOME")
+  name        String?
+  phone       String?
+  address1    String
+  address2    String?
+  city        String
+  state       String?
+  postalCode  String?
+  country     String   @default("US")
+  latitude    Float?
+  longitude   Float?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+// ==================== DELIVERY ====================
+
+model Delivery {
+  id              String        @id @default(cuid())
+  orderId         String        @unique
+  driverId        String
+  status          String        @default("PENDING") // PENDING, ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, FAILED
+  estimatedTime   DateTime?
+  actualTime      DateTime?
+  distance        Float?
+  route           String?       // JSON string
+  currentLat      Float?
+  currentLng      Float?
+  notes           String?
+  rating          Int?
+  feedback        String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relaciones
+  order           Order         @relation(fields: [orderId], references: [id])
+  driver          User          @relation(fields: [driverId], references: [id])
+
+  @@map("deliveries")
+}
+
+// ==================== REVIEWS ====================
+
+model Review {
+  id              String        @id @default(cuid())
+  userId          String
+  productId       String
+  orderId         String?       // Para verificación de compra
+  rating          Int           // 1-5 estrellas
+  title           String?
+  comment         String?
+  
+  // Verificación y moderación
+  isVerifiedPurchase Boolean    @default(false)
+  status          String        @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String?
+  moderatedBy     String?       // ID del admin que moderó
+  moderatedAt     DateTime?
+  
+  // Estadísticas de votos
+  helpfulCount    Int           @default(0)
+  notHelpfulCount Int           @default(0)
+  
+  // Respuesta del vendedor
+  sellerResponse  String?
+  sellerRespondedAt DateTime?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relaciones
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images          ReviewImage[]
+  votes           ReviewVote[]
+
+  @@unique([userId, productId])
+  @@map("reviews")
+}
+
+model ReviewImage {
+  id        String   @id @default(cuid())
+  reviewId  String
+  imageUrl  String
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@map("review_images")
+}
+
+model ReviewVote {
+  id        String   @id @default(cuid())
+  reviewId  String
+  userId    String
+  voteType  String   // HELPFUL, NOT_HELPFUL
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@map("review_votes")
+}
+
+// ==================== LOYALTY ====================
+
+model LoyaltyPoints {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  currentPoints Int      @default(0)
+  totalEarned   Int      @default(0)
+  totalRedeemed Int      @default(0)
+  lifetimePoints Int     @default(0)
+  
+  // Tier/Level system
+  tier          String   @default("BRONZE") // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
+  tierProgress  Float    @default(0.0) // Progreso al siguiente tier (0-100)
+  nextTierPoints Int     @default(500) // Puntos necesarios para siguiente tier
+  
+  // Estadísticas de engagement
+  totalBadges   Int      @default(0)
+  totalChallengesCompleted Int @default(0)
+  totalReferrals Int     @default(0)
+  currentStreak Int      @default(0) // Racha actual de compras mensuales
+  longestStreak Int      @default(0) // Racha más larga
+  
+  // Metadatos
+  lastPointsEarned DateTime?
+  lastTierUpgrade  DateTime?
+  metadata      String?  // JSON string
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relaciones
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  LoyaltyTransaction[]
+  badges        UserBadge[]
+  challenges    UserChallenge[]
+  referrals     Referral[] @relation("Referrer")
+  streaks       Streak[]
+
+  @@index([tier])
+  @@index([currentPoints])
+  @@map("loyalty_points")
+}
+
+// ==================== CUPONES Y DESCUENTOS ====================
+
+model Coupon {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  description     String?
+  type            String   // PERCENTAGE, FIXED_AMOUNT, FREE_SHIPPING
+  value           Float    // Porcentaje (0-100) o monto fijo
+  
+  // Condiciones de uso
+  minPurchase     Float?   // Compra mínima requerida
+  maxDiscount     Float?   // Descuento máximo (para porcentajes)
+  maxUsage        Int?     // Límite global de usos
+  maxUsagePerUser Int      @default(1) // Límite por usuario
+  
+  // Aplicabilidad
+  applicableProducts String? // JSON array de IDs de productos
+  applicableCategories String? // JSON array de IDs de categorías
+  excludedProducts String? // JSON array de IDs de productos excluidos
+  
+  // Vigencia
+  validFrom       DateTime
+  validUntil      DateTime?
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  isPublic        Boolean  @default(false) // Si es visible para todos o requiere código
+  
+  // Estadísticas
+  timesUsed       Int      @default(0)
+  totalDiscount   Float    @default(0.0)
+  
+  // Metadatos
+  createdBy       String?  // ID del admin que lo creó
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  usages          CouponUsage[]
+
+  @@map("coupons")
+}
+
+model CouponUsage {
+  id          String   @id @default(cuid())
+  couponId    String
+  userId      String
+  orderId     String?
+  discountAmount Float
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  coupon      Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@map("coupon_usages")
+}
+
+// ==================== NOTIFICACIONES ====================
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // ORDER, DELIVERY, PROMO, REVIEW, SYSTEM, WISHLIST
+  title       String
+  message     String
+  data        String?  // JSON string con datos adicionales
+  
+  // Estado
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  
+  // Entrega
+  sentVia     String?  // PUSH, IN_APP, BOTH
+  isPushed    Boolean  @default(false)
+  pushedAt    DateTime?
+  
+  // Acción
+  actionUrl   String?
+  actionType  String?  // VIEW_ORDER, VIEW_PRODUCT, VIEW_PROMO, etc.
+  
+  // Metadatos
+  priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  expiresAt   DateTime?
+  imageUrl    String?
+  metadata    String?  // JSON string
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  
+  // Preferencias por tipo
+  enableOrder       Boolean  @default(true)
+  enableDelivery    Boolean  @default(true)
+  enablePromo       Boolean  @default(true)
+  enableReview      Boolean  @default(true)
+  enableSystem      Boolean  @default(true)
+  enableWishlist    Boolean  @default(true)
+  
+  // Canales
+  enablePush        Boolean  @default(true)
+  enableEmail       Boolean  @default(true)
+  enableSMS         Boolean  @default(false)
+  
+  // Horario de no molestar
+  quietHoursStart   String?  // HH:mm formato
+  quietHoursEnd     String?  // HH:mm formato
+  enableQuietHours  Boolean  @default(false)
+  
+  // Frecuencia
+  digestMode        String   @default("REALTIME") // REALTIME, HOURLY, DAILY
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model FCMToken {
+  id          String   @id @default(cuid())
+  userId      String
+  token       String   @unique
+  deviceInfo  String?  // JSON string con info del dispositivo
+  platform    String   // WEB, IOS, ANDROID
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("fcm_tokens")
+}
+
+// ==================== PAGOS Y TRANSACCIONES ====================
+
+model Payment {
+  id              String   @id @default(cuid())
+  orderId         String   @unique
+  userId          String
+  
+  // Proveedor de pago
+  provider        String   // STRIPE, MERCADOPAGO
+  providerPaymentId String? // ID del pago en el proveedor
+  
+  // Método de pago
+  paymentMethod   String   // CARD, DEBIT_CARD, CREDIT_CARD, BANK_TRANSFER, CASH, MERCADOPAGO_WALLET
+  
+  // Montos
+  amount          Float
+  currency        String   @default("USD")
+  fee             Float?   // Comisión del procesador
+  netAmount       Float?   // Monto neto después de comisiones
+  
+  // Estado del pago
+  status          String   @default("PENDING") // PENDING, AUTHORIZED, CAPTURED, PROCESSING, COMPLETED, FAILED, CANCELLED, REFUNDED, PARTIALLY_REFUNDED
+  
+  // Detalles de la tarjeta (últimos 4 dígitos, marca, etc.)
+  cardBrand       String?  // VISA, MASTERCARD, AMEX, etc.
+  cardLast4       String?
+  cardExpMonth    String?
+  cardExpYear     String?
+  
+  // URLs de retorno (para MercadoPago y otros)
+  successUrl      String?
+  failureUrl      String?
+  pendingUrl      String?
+  
+  // Metadatos del pago
+  metadata        String?  // JSON string con info adicional
+  providerResponse String? // Respuesta completa del proveedor (JSON)
+  
+  // Tiempos
+  authorizedAt    DateTime?
+  capturedAt      DateTime?
+  failedAt        DateTime?
+  expiresAt       DateTime?
+  
+  // Error handling
+  errorCode       String?
+  errorMessage    String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  order           Order    @relation(fields: [orderId], references: [id])
+  transactions    PaymentTransaction[]
+  refunds         Refund[]
+
+  @@index([userId])
+  @@index([provider, providerPaymentId])
+  @@index([status])
+  @@map("payments")
+}
+
+model PaymentTransaction {
+  id              String   @id @default(cuid())
+  paymentId       String
+  
+  // Tipo de transacción
+  type            String   // AUTHORIZATION, CAPTURE, VOID, REFUND, CHARGEBACK
+  
+  // Montos
+  amount          Float
+  currency        String   @default("USD")
+  
+  // Estado
+  status          String   // PENDING, COMPLETED, FAILED, CANCELLED
+  
+  // Respuesta del proveedor
+  providerTransactionId String?
+  providerResponse String? // JSON string
+  
+  // Error handling
+  errorCode       String?
+  errorMessage    String?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([type])
+  @@map("payment_transactions")
+}
+
+model Refund {
+  id              String   @id @default(cuid())
+  paymentId       String
+  orderId         String
+  userId          String
+  
+  // Tipo de reembolso
+  type            String   // FULL, PARTIAL
+  reason          String   // CUSTOMER_REQUEST, QUALITY_ISSUE, DAMAGED, OUT_OF_STOCK, FRAUD, OTHER
+  reasonDetails   String?
+  
+  // Montos
+  amount          Float
+  currency        String   @default("USD")
+  
+  // Estado
+  status          String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
+  
+  // Proveedor
+  providerRefundId String?
+  providerResponse String? // JSON string
+  
+  // Aprobación
+  requestedBy     String   // USER o ADMIN ID
+  approvedBy      String?  // ADMIN ID que aprobó
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  
+  // Procesamiento
+  processedAt     DateTime?
+  completedAt     DateTime?
+  failedAt        DateTime?
+  
+  // Error handling
+  errorCode       String?
+  errorMessage    String?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  notes           String?  // Notas internas del admin
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  payment         Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@index([orderId])
+  @@index([userId])
+  @@index([status])
+  @@map("refunds")
+}
+
+// ==================== INVENTARIO Y PROVEEDORES ====================
+
+model Supplier {
+  id              String   @id @default(cuid())
+  name            String
+  code            String   @unique // Código único del proveedor
+  email           String?
+  phone           String?
+  contactPerson   String?
+  
+  // Dirección
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  postalCode      String?
+  
+  // Información comercial
+  taxId           String?  // RFC/NIT/EIN
+  paymentTerms    String?  // NET30, NET60, etc.
+  bankAccount     String?  // Encriptado
+  
+  // Calificación y estadísticas
+  rating          Float    @default(0.0)
+  totalOrders     Int      @default(0)
+  totalSpent      Float    @default(0.0)
+  onTimeDelivery  Float    @default(100.0) // Porcentaje
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  
+  // Metadatos
+  notes           String?
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  inventoryMovements InventoryMovement[]
+  productSuppliers   ProductSupplier[]
+
+  @@map("suppliers")
+}
+
+model ProductSupplier {
+  id              String   @id @default(cuid())
+  productId       String
+  supplierId      String
+  
+  // Información de suministro
+  supplierSku     String?  // SKU del proveedor
+  cost            Float    // Costo de compra
+  minOrderQty     Int      @default(1)
+  leadTime        Int?     // Días de entrega
+  
+  // Preferencias
+  isPrimary       Boolean  @default(false)
+  priority        Int      @default(0)
+  
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  supplier        Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, supplierId])
+  @@index([productId])
+  @@index([supplierId])
+  @@map("product_suppliers")
+}
+
+model InventoryMovement {
+  id              String   @id @default(cuid())
+  
+  // Producto afectado
+  productId       String?
+  variantId       String?
+  
+  // Tipo de movimiento
+  type            String   // IN (entrada), OUT (salida), ADJUSTMENT (ajuste), RETURN (devolución), WASTE (merma), TRANSFER (transferencia)
+  
+  // Cantidades
+  quantity        Int      // Cantidad (positiva para IN, negativa para OUT)
+  previousStock   Int      // Stock anterior
+  newStock        Int      // Stock nuevo
+  
+  // Referencia
+  referenceType   String?  // ORDER, PURCHASE, ADJUSTMENT, RETURN, WASTE, TRANSFER
+  referenceId     String?  // ID de la orden, compra, etc.
+  
+  // Proveedor (para compras)
+  supplierId      String?
+  
+  // Ubicación (para futuras multi-ubicaciones)
+  fromLocation    String?  // Ubicación origen
+  toLocation      String?  // Ubicación destino
+  
+  // Costos
+  unitCost        Float?   // Costo unitario
+  totalCost       Float?   // Costo total del movimiento
+  
+  // Usuario responsable
+  userId          String?  // Usuario que realizó el movimiento
+  userName        String?  // Nombre del usuario (desnormalizado)
+  
+  // Detalles
+  reason          String?  // Razón del movimiento
+  notes           String?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+
+  // Relaciones
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@index([productId])
+  @@index([variantId])
+  @@index([type])
+  @@index([referenceType, referenceId])
+  @@index([supplierId])
+  @@index([createdAt])
+  @@map("inventory_movements")
+}
+
+model StockAlert {
+  id              String   @id @default(cuid())
+  
+  // Producto
+  productId       String?
+  variantId       String?
+  productName     String   // Desnormalizado para queries rápidas
+  variantName     String?
+  sku             String
+  
+  // Niveles de stock
+  currentStock    Int
+  minStock        Int
+  reorderPoint    Int
+  
+  // Tipo de alerta
+  alertType       String   // LOW_STOCK, OUT_OF_STOCK, OVERSTOCK
+  severity        String   // INFO, WARNING, CRITICAL
+  
+  // Estado
+  status          String   @default("ACTIVE") // ACTIVE, ACKNOWLEDGED, RESOLVED, IGNORED
+  
+  // Resolución
+  acknowledgedBy  String?  // User ID que reconoció la alerta
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  resolution      String?  // Descripción de cómo se resolvió
+  
+  // Notificaciones
+  notified        Boolean  @default(false)
+  notifiedAt      DateTime?
+  notificationsSent Int    @default(0)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([productId])
+  @@index([variantId])
+  @@index([status])
+  @@index([alertType])
+  @@index([severity])
+  @@index([createdAt])
+  @@map("stock_alerts")
+}
+
+// ==================== MEMBRESÍAS Y SUSCRIPCIONES ====================
+
+model MembershipPlan {
+  id              String   @id @default(cuid())
+  name            String   @unique // BRONZE, SILVER, GOLD, PLATINUM
+  displayName     String   // Nombre para mostrar
+  description     String?
+  
+  // Precios
+  monthlyPrice    Float
+  quarterlyPrice  Float?
+  annualPrice     Float?
+  
+  // Beneficios
+  discountPercent Float    @default(0) // Descuento en todas las compras
+  freeShipping    Boolean  @default(false)
+  pointsMultiplier Float   @default(1.0) // Multiplicador de puntos
+  earlyAccess     Boolean  @default(false) // Acceso anticipado a productos
+  exclusiveProducts Boolean @default(false) // Productos exclusivos
+  
+  // Límites
+  maxMonthlyOrders Int?    // Órdenes mensuales máximas (null = ilimitado)
+  prioritySupport Boolean  @default(false)
+  
+  // Configuración
+  features        String?  // JSON array de features
+  color           String?  // Color del badge
+  icon            String?  // Icono del plan
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  isVisible       Boolean  @default(true)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  memberships     UserMembership[]
+  benefits        MembershipBenefit[]
+
+  @@map("membership_plans")
+}
+
+model UserMembership {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  planId          String
+  
+  // Estado
+  status          String   @default("ACTIVE") // ACTIVE, CANCELLED, EXPIRED, PAUSED
+  
+  // Fechas
+  startDate       DateTime @default(now())
+  endDate         DateTime
+  renewalDate     DateTime?
+  cancelledAt     DateTime?
+  pausedAt        DateTime?
+  
+  // Pago
+  paymentMethod   String?
+  billingCycle    String   // MONTHLY, QUARTERLY, ANNUAL
+  lastPaymentDate DateTime?
+  nextPaymentDate DateTime?
+  autoRenew       Boolean  @default(true)
+  
+  // Stripe/Payment
+  stripeSubscriptionId String? @unique
+  stripeCustomerId     String?
+  
+  // Uso
+  ordersThisMonth Int      @default(0)
+  benefitsUsed    Int      @default(0)
+  totalSavings    Float    @default(0.0) // Ahorro total acumulado
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            MembershipPlan @relation(fields: [planId], references: [id])
+  benefitUsages   MembershipBenefitUsage[]
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@map("user_memberships")
+}
+
+model MembershipBenefit {
+  id              String   @id @default(cuid())
+  planId          String
+  
+  // Tipo de beneficio
+  type            String   // DISCOUNT, FREE_PRODUCT, FREE_SHIPPING, EARLY_ACCESS, EXCLUSIVE_ACCESS
+  name            String
+  description     String?
+  
+  // Configuración del beneficio
+  value           Float?   // Valor del beneficio (descuento, cantidad, etc.)
+  productIds      String?  // JSON array de IDs de productos aplicables
+  categoryIds     String?  // JSON array de IDs de categorías aplicables
+  
+  // Límites
+  usageLimit      Int?     // Límite de uso (null = ilimitado)
+  usagePeriod     String?  // DAILY, WEEKLY, MONTHLY, ANNUAL
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  plan            MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  usages          MembershipBenefitUsage[]
+
+  @@index([planId])
+  @@map("membership_benefits")
+}
+
+model MembershipBenefitUsage {
+  id              String   @id @default(cuid())
+  membershipId    String
+  benefitId       String
+  
+  // Uso
+  orderId         String?
+  productId       String?
+  usageDate       DateTime @default(now())
+  value           Float?   // Valor del beneficio usado
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+
+  // Relaciones
+  membership      UserMembership    @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  benefit         MembershipBenefit @relation(fields: [benefitId], references: [id])
+
+  @@index([membershipId])
+  @@index([benefitId])
+  @@index([usageDate])
+  @@map("membership_benefit_usages")
+}
+
+model SubscriptionPlan {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  
+  // Configuración de la caja
+  boxType         String   // STANDARD, PREMIUM, DELUXE, CUSTOM
+  boxSize         String?  // SMALL, MEDIUM, LARGE
+  estimatedValue  Float    // Valor estimado del contenido
+  
+  // Precio
+  price           Float
+  comparePrice    Float?   // Precio regular sin suscripción
+  
+  // Contenido
+  includedProducts String? // JSON array de productos incluidos
+  productCount    Int      @default(0)
+  totalWeight     Float?
+  
+  // Personalización
+  allowCustomization Boolean @default(false)
+  customizationOptions String? // JSON con opciones
+  
+  // Frecuencia
+  deliveryFrequency String  // WEEKLY, BIWEEKLY, MONTHLY
+  
+  // Restricciones
+  minSubscriptionPeriod Int? // Mínimo de entregas comprometidas
+  membershipRequired String? // ID del plan de membresía requerido
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  isVisible       Boolean  @default(true)
+  stockLimit      Int?     // Límite de suscriptores
+  currentSubscribers Int   @default(0)
+  
+  // Marketing
+  imageUrl        String?
+  features        String?  // JSON array de características destacadas
+  tags            String?  // JSON array
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  subscriptions   Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String
+  planId          String
+  
+  // Estado
+  status          String   @default("ACTIVE") // ACTIVE, PAUSED, CANCELLED, EXPIRED
+  
+  // Fechas
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  nextDeliveryDate DateTime?
+  cancelledAt     DateTime?
+  pausedAt        DateTime?
+  pausedUntil     DateTime?
+  
+  // Configuración de entrega
+  frequency       String   // WEEKLY, BIWEEKLY, MONTHLY
+  deliveryDay     String?  // Día de la semana o del mes
+  addressId       String?  // ID de la dirección de entrega
+  shippingAddress String?  // JSON de la dirección (snapshot)
+  
+  // Personalización
+  preferences     String?  // JSON con preferencias del usuario
+  excludedProducts String? // JSON array de productos excluidos
+  notes           String?
+  
+  // Pago
+  paymentMethod   String?
+  autoRenew       Boolean  @default(true)
+  lastPaymentDate DateTime?
+  nextPaymentDate DateTime?
+  
+  // Stripe/Payment
+  stripeSubscriptionId String? @unique
+  stripeCustomerId     String?
+  
+  // Estadísticas
+  totalDeliveries Int      @default(0)
+  completedDeliveries Int  @default(0)
+  skippedDeliveries Int    @default(0)
+  totalSpent      Float    @default(0.0)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  plan            SubscriptionPlan @relation(fields: [planId], references: [id])
+  deliveries      SubscriptionDelivery[]
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([nextDeliveryDate])
+  @@map("subscriptions")
+}
+
+model SubscriptionDelivery {
+  id              String   @id @default(cuid())
+  subscriptionId  String
+  
+  // Delivery
+  orderId         String?  @unique // ID de la orden generada
+  scheduledDate   DateTime
+  deliveredDate   DateTime?
+  
+  // Estado
+  status          String   @default("SCHEDULED") // SCHEDULED, PREPARING, SHIPPED, DELIVERED, SKIPPED, FAILED
+  
+  // Contenido
+  products        String   // JSON array de productos incluidos
+  totalValue      Float
+  
+  // Tracking
+  trackingNumber  String?
+  trackingUrl     String?
+  
+  // Acciones del usuario
+  skippedBy       String?  // User ID que saltó
+  skippedAt       DateTime?
+  skipReason      String?
+  
+  // Feedback
+  rating          Int?
+  feedback        String?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@map("subscription_deliveries")
+}
+
+// ==================== RECOMENDACIONES Y PERSONALIZACIÓN ====================
+
+model UserEvent {
+  id              String   @id @default(cuid())
+  userId          String?  // Null para usuarios anónimos
+  sessionId       String   // ID de sesión para trackear anónimos
+  
+  // Tipo de evento
+  eventType       String   // VIEW_PRODUCT, ADD_TO_CART, REMOVE_FROM_CART, ADD_TO_WISHLIST, SEARCH, PURCHASE, CLICK, SCROLL
+  
+  // Contexto del evento
+  productId       String?
+  categoryId      String?
+  searchQuery     String?
+  pageUrl         String?
+  referrer        String?
+  
+  // Datos adicionales
+  duration        Int?     // Tiempo en segundos (para VIEW_PRODUCT)
+  quantity        Int?     // Cantidad (para ADD_TO_CART)
+  price           Float?   // Precio del producto
+  position        Int?     // Posición en la lista (para CLICK)
+  
+  // Contexto de recomendación (si el evento fue resultado de una recomendación)
+  fromRecommendation Boolean @default(false)
+  recommendationType String? // PERSONALIZED, TRENDING, SIMILAR, FREQUENTLY_BOUGHT
+  
+  // Dispositivo y ubicación
+  deviceType      String?  // MOBILE, TABLET, DESKTOP
+  browser         String?
+  os              String?
+  ipAddress       String?
+  country         String?
+  city            String?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([productId])
+  @@index([createdAt])
+  @@map("user_events")
+}
+
+model ProductRecommendation {
+  id              String   @id @default(cuid())
+  productId       String   // Producto fuente
+  recommendedProductId String // Producto recomendado
+  
+  // Tipo de recomendación
+  type            String   // SIMILAR, FREQUENTLY_BOUGHT, COMPLEMENTARY, TRENDING, PERSONALIZED
+  
+  // Puntuación
+  score           Float    @default(0.0) // Puntuación de relevancia (0-1)
+  confidence      Float    @default(0.0) // Nivel de confianza (0-1)
+  
+  // Métricas de efectividad
+  impressions     Int      @default(0) // Veces mostrado
+  clicks          Int      @default(0) // Veces clickeado
+  conversions     Int      @default(0) // Veces comprado
+  ctr             Float    @default(0.0) // Click-through rate
+  conversionRate  Float    @default(0.0) // Conversion rate
+  
+  // Algoritmo usado
+  algorithm       String?  // COLLABORATIVE_FILTERING, CONTENT_BASED, HYBRID
+  algorithmVersion String? @default("1.0")
+  
+  // Vigencia
+  validFrom       DateTime @default(now())
+  validUntil      DateTime?
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  
+  // Metadatos
+  metadata        String?  // JSON string (factores que influyeron, etc.)
+  lastCalculated  DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([productId, recommendedProductId, type])
+  @@index([productId, type])
+  @@index([recommendedProductId])
+  @@index([score])
+  @@index([isActive])
+  @@map("product_recommendations")
+}
+
+model UserSegment {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  
+  // Segmentos (pueden tener múltiples segmentos)
+  segments        String   // JSON array: FREQUENT_BUYER, PREMIUM, AT_RISK, NEW_USER, INACTIVE, HIGH_VALUE, BARGAIN_HUNTER
+  primarySegment  String   // Segmento principal
+  
+  // Scores de comportamiento
+  engagementScore Float    @default(0.0) // 0-100
+  purchaseFrequency Float  @default(0.0) // Compras por mes
+  averageOrderValue Float  @default(0.0)
+  lifetimeValue   Float    @default(0.0)
+  churnRisk       Float    @default(0.0) // 0-100 (mayor = más riesgo)
+  
+  // Preferencias detectadas
+  preferredCategories String? // JSON array de category IDs
+  preferredPriceRange String? // JSON {min, max}
+  preferredBrands     String? // JSON array
+  shoppingTime        String? // MORNING, AFTERNOON, EVENING, NIGHT
+  shoppingDays        String? // JSON array de días
+  
+  // Métricas temporales
+  daysSinceLastPurchase Int?
+  daysSinceFirstPurchase Int?
+  totalOrders         Int      @default(0)
+  totalSpent          Float    @default(0.0)
+  
+  // Predicciones
+  predictedNextPurchase DateTime?
+  recommendedActions  String?  // JSON array de acciones recomendadas
+  
+  // Estado
+  lastCalculated  DateTime @default(now())
+  needsRecalculation Boolean @default(false)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([primarySegment])
+  @@index([churnRisk])
+  @@index([engagementScore])
+  @@index([lifetimeValue])
+  @@index([needsRecalculation])
+  @@map("user_segments")
+}
+
+model PersonalizedContent {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Tipo de contenido
+  contentType     String   // BANNER, PRODUCT_CAROUSEL, CATEGORY_HIGHLIGHT, OFFER, EMAIL
+  
+  // Contenido
+  title           String?
+  description     String?
+  imageUrl        String?
+  ctaText         String?
+  ctaUrl          String?
+  
+  // Productos/categorías personalizados
+  productIds      String?  // JSON array
+  categoryIds     String?  // JSON array
+  
+  // Targeting
+  segment         String?  // Segmento objetivo
+  priority        Int      @default(0)
+  
+  // Scheduling
+  validFrom       DateTime @default(now())
+  validUntil      DateTime?
+  
+  // Métricas
+  impressions     Int      @default(0)
+  clicks          Int      @default(0)
+  conversions     Int      @default(0)
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  delivered       Boolean  @default(false)
+  deliveredAt     DateTime?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([contentType])
+  @@index([isActive])
+  @@index([validFrom, validUntil])
+  @@map("personalized_content")
+}
+
+model RecommendationFeedback {
+  id              String   @id @default(cuid())
+  userId          String
+  productId       String   // Producto fuente
+  recommendedProductId String // Producto recomendado
+  
+  // Feedback del usuario
+  action          String   // CLICKED, PURCHASED, DISMISSED, IGNORED
+  
+  // Contexto
+  recommendationType String // SIMILAR, FREQUENTLY_BOUGHT, etc.
+  position        Int?     // Posición en la lista de recomendaciones
+  
+  // Si hubo compra
+  purchased       Boolean  @default(false)
+  purchaseAmount  Float?
+  
+  // Tiempo
+  timeToAction    Int?     // Segundos hasta la acción
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([productId])
+  @@index([recommendedProductId])
+  @@index([action])
+  @@index([recommendationType])
+  @@index([createdAt])
+  @@map("recommendation_feedback")
+}
+
+// ==================== GAMIFICACIÓN Y FIDELIZACIÓN ====================
+
+// Historial de transacciones de puntos
+model LoyaltyTransaction {
+  id              String   @id @default(cuid())
+  loyaltyId       String
+  userId          String
+  
+  // Tipo de transacción
+  type            String   // EARNED, REDEEMED, EXPIRED, ADJUSTMENT, BONUS
+  action          String   // PURCHASE, REVIEW, REFERRAL, SHARE, PROFILE_COMPLETE, CHALLENGE, BONUS, REDEMPTION
+  
+  // Puntos
+  points          Int      // Positivo para ganados, negativo para canjeados
+  balanceBefore   Int      // Balance antes de la transacción
+  balanceAfter    Int      // Balance después de la transacción
+  
+  // Contexto
+  orderId         String?  // Si fue por una compra
+  referenceType   String?  // ORDER, REVIEW, REFERRAL, CHALLENGE, REWARD
+  referenceId     String?  // ID de la referencia
+  
+  // Multiplicadores
+  multiplier      Float    @default(1.0) // Multiplicador aplicado (por tier, eventos especiales, etc.)
+  bonusPoints     Int      @default(0)   // Puntos bonus adicionales
+  
+  // Expiración (para puntos con tiempo limitado)
+  expiresAt       DateTime?
+  isExpired       Boolean  @default(false)
+  
+  // Detalles
+  description     String?
+  notes           String?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+
+  // Relaciones
+  loyalty         LoyaltyPoints @relation(fields: [loyaltyId], references: [id], onDelete: Cascade)
+
+  @@index([loyaltyId])
+  @@index([userId])
+  @@index([type])
+  @@index([action])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@map("loyalty_transactions")
+}
+
+// Definición de badges/logros
+model Badge {
+  id              String   @id @default(cuid())
+  
+  // Identificación
+  code            String   @unique // FIRST_PURCHASE, VIP_CLIENT, EXPERT_CRITIC, etc.
+  name            String
+  description     String?
+  
+  // Visual
+  icon            String?  // URL o emoji
+  color           String?  // Color hexadecimal
+  rarity          String   @default("COMMON") // COMMON, RARE, EPIC, LEGENDARY
+  
+  // Requisitos
+  requirementType String   // PURCHASE_COUNT, TOTAL_SPENT, REVIEW_COUNT, REFERRAL_COUNT, STREAK, SPECIAL
+  requirementValue Int?    // Valor requerido (ej: 5 compras, $5000 gastados)
+  
+  // Recompensas
+  pointsReward    Int      @default(0) // Puntos otorgados al conseguirlo
+  hasSpecialReward Boolean @default(false)
+  specialRewardDesc String? // Descripción de recompensa especial
+  
+  // Configuración
+  isActive        Boolean  @default(true)
+  isSecret        Boolean  @default(false) // Badge secreto (no se muestra hasta conseguirlo)
+  sortOrder       Int      @default(0)
+  
+  // Estadísticas
+  totalAwarded    Int      @default(0)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  userBadges      UserBadge[]
+
+  @@index([code])
+  @@index([requirementType])
+  @@index([isActive])
+  @@map("badges")
+}
+
+// Badges conseguidos por usuarios
+model UserBadge {
+  id              String   @id @default(cuid())
+  userId          String
+  loyaltyId       String
+  badgeId         String
+  
+  // Estado
+  isNew           Boolean  @default(true) // Para mostrar notificación
+  viewedAt        DateTime?
+  
+  // Contexto de cuando se consiguió
+  earnedFromType  String?  // ORDER, REVIEW, REFERRAL, STREAK, etc.
+  earnedFromId    String?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  earnedAt        DateTime @default(now())
+
+  // Relaciones
+  loyalty         LoyaltyPoints @relation(fields: [loyaltyId], references: [id], onDelete: Cascade)
+  badge           Badge         @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([loyaltyId])
+  @@index([badgeId])
+  @@index([isNew])
+  @@index([earnedAt])
+  @@map("user_badges")
+}
+
+// Definición de challenges/misiones
+model Challenge {
+  id              String   @id @default(cuid())
+  
+  // Identificación
+  code            String   @unique
+  name            String
+  description     String
+  
+  // Tipo y frecuencia
+  type            String   // DAILY, WEEKLY, MONTHLY, SPECIAL, ONE_TIME
+  category        String   // PURCHASE, REVIEW, SOCIAL, EXPLORATION, LOYALTY
+  
+  // Objetivo
+  targetType      String   // BUY_PRODUCTS, WRITE_REVIEWS, REFER_FRIENDS, VISIT_PAGES, SPEND_AMOUNT
+  targetValue     Int      // Valor objetivo (ej: comprar 3 productos, escribir 2 reviews)
+  targetDetails   String?  // JSON con detalles adicionales
+  
+  // Recompensas
+  pointsReward    Int      // Puntos otorgados al completar
+  badgeReward     String?  // ID del badge otorgado (opcional)
+  couponReward    String?  // ID del cupón otorgado (opcional)
+  
+  // Validez
+  startDate       DateTime
+  endDate         DateTime?
+  
+  // Configuración
+  isActive        Boolean  @default(true)
+  isRepeatable    Boolean  @default(false) // Si se puede completar múltiples veces
+  maxCompletions  Int      @default(1)
+  
+  // Visual
+  icon            String?
+  color           String?
+  difficulty      String   @default("MEDIUM") // EASY, MEDIUM, HARD
+  
+  // Estadísticas
+  totalParticipants Int    @default(0)
+  totalCompletions  Int    @default(0)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  userChallenges  UserChallenge[]
+
+  @@index([code])
+  @@index([type])
+  @@index([category])
+  @@index([isActive])
+  @@index([startDate, endDate])
+  @@map("challenges")
+}
+
+// Progreso de usuarios en challenges
+model UserChallenge {
+  id              String   @id @default(cuid())
+  userId          String
+  loyaltyId       String
+  challengeId     String
+  
+  // Progreso
+  currentProgress Int      @default(0)
+  targetProgress  Int      // Copiado del challenge para histórico
+  isCompleted     Boolean  @default(false)
+  completedAt     DateTime?
+  
+  // Recompensas
+  pointsEarned    Int      @default(0)
+  rewardClaimed   Boolean  @default(false)
+  claimedAt       DateTime?
+  
+  // Tracking
+  startedAt       DateTime @default(now())
+  lastProgressAt  DateTime @default(now())
+  
+  // Intentos (para challenges repetibles)
+  attemptNumber   Int      @default(1)
+  
+  // Metadatos
+  progressData    String?  // JSON con detalles del progreso
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  loyalty         LoyaltyPoints @relation(fields: [loyaltyId], references: [id], onDelete: Cascade)
+  challenge       Challenge     @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId, attemptNumber])
+  @@index([userId])
+  @@index([loyaltyId])
+  @@index([challengeId])
+  @@index([isCompleted])
+  @@index([createdAt])
+  @@map("user_challenges")
+}
+
+// Sistema de referidos
+model Referral {
+  id              String   @id @default(cuid())
+  referrerId      String   // Usuario que refiere
+  referrerLoyaltyId String
+  referredEmail   String   // Email del referido
+  referredUserId  String?  // ID del usuario cuando se registra
+  
+  // Código de referido
+  referralCode    String   @unique // Código único del referrer
+  referralLink    String   // Link completo de referido
+  
+  // Estado
+  status          String   @default("PENDING") // PENDING, REGISTERED, FIRST_PURCHASE, COMPLETED
+  
+  // Recompensas
+  referrerPoints  Int      @default(0) // Puntos ganados por el referrer
+  referredPoints  Int      @default(0) // Puntos ganados por el referido
+  referrerBonusPaid Boolean @default(false)
+  referredBonusPaid Boolean @default(false)
+  
+  // Tracking
+  clickCount      Int      @default(0)
+  lastClickAt     DateTime?
+  registeredAt    DateTime?
+  firstPurchaseAt DateTime?
+  firstPurchaseAmount Float?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  referrerLoyalty LoyaltyPoints @relation("Referrer", fields: [referrerLoyaltyId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@index([referredUserId])
+  @@index([referralCode])
+  @@index([status])
+  @@index([createdAt])
+  @@map("referrals")
+}
+
+// Sistema de rachas (streaks)
+model Streak {
+  id              String   @id @default(cuid())
+  userId          String
+  loyaltyId       String
+  
+  // Tipo de racha
+  type            String   // PURCHASE_MONTHLY, PURCHASE_WEEKLY, LOGIN_DAILY, REVIEW_WEEKLY
+  
+  // Racha actual
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  
+  // Fechas de la última acción
+  lastActionDate  DateTime?
+  nextRequiredDate DateTime? // Fecha límite para mantener racha
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  brokeAt         DateTime? // Cuando se rompió la racha
+  
+  // Milestones alcanzados
+  milestones      String?  // JSON array de milestones (3, 6, 12 meses, etc.)
+  
+  // Recompensas acumuladas
+  totalBonusPoints Int     @default(0)
+  currentMultiplier Float  @default(1.0)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  loyalty         LoyaltyPoints @relation(fields: [loyaltyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+  @@index([loyaltyId])
+  @@index([type])
+  @@index([isActive])
+  @@index([currentStreak])
+  @@map("streaks")
+}
+
+// Leaderboards/Rankings
+model LeaderboardEntry {
+  id              String   @id @default(cuid())
+  userId          String
+  userName        String   // Desnormalizado para queries rápidas
+  
+  // Tipo de leaderboard
+  leaderboardType String   // TOP_BUYERS, TOP_REVIEWERS, TOP_REFERRERS, HIGHEST_STREAK, MOST_BADGES
+  period          String   // ALL_TIME, YEARLY, MONTHLY, WEEKLY
+  
+  // Métricas
+  score           Float    // Score para ranking
+  rank            Int      // Posición actual
+  previousRank    Int?     // Posición anterior (para mostrar cambios)
+  
+  // Detalles específicos por tipo
+  totalPurchases  Int?
+  totalSpent      Float?
+  totalReviews    Int?
+  totalReferrals  Int?
+  currentStreak   Int?
+  totalBadges     Int?
+  
+  // Periodo
+  periodStart     DateTime
+  periodEnd       DateTime
+  
+  // Recompensas
+  hasReward       Boolean  @default(false)
+  rewardClaimed   Boolean  @default(false)
+  rewardPoints    Int      @default(0)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  calculatedAt    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, leaderboardType, period, periodStart])
+  @@index([leaderboardType, period, rank])
+  @@index([userId])
+  @@index([score])
+  @@index([periodStart, periodEnd])
+  @@map("leaderboard_entries")
+}
+
+// Catálogo de recompensas canjeables
+model Reward {
+  id              String   @id @default(cuid())
+  
+  // Identificación
+  name            String
+  description     String
+  shortDesc       String?
+  
+  // Tipo de recompensa
+  type            String   // DISCOUNT, FREE_PRODUCT, FREE_SHIPPING, EXCLUSIVE_ACCESS, PHYSICAL_REWARD
+  
+  // Costo en puntos
+  pointsCost      Int
+  
+  // Configuración según tipo
+  discountType    String?  // PERCENTAGE, FIXED_AMOUNT
+  discountValue   Float?
+  productId       String?  // Para FREE_PRODUCT
+  couponCode      String?  // Cupón generado automáticamente
+  
+  // Límites
+  stockLimit      Int?     // Cantidad disponible (null = ilimitado)
+  currentStock    Int?     // Stock actual
+  maxPerUser      Int      @default(1) // Máximo por usuario
+  requiresTier    String?  // Tier mínimo requerido (SILVER, GOLD, etc.)
+  
+  // Visual
+  imageUrl        String?
+  icon            String?
+  color           String?
+  featured        Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  
+  // Validez
+  validFrom       DateTime
+  validUntil      DateTime?
+  
+  // Estado
+  isActive        Boolean  @default(true)
+  isVisible       Boolean  @default(true)
+  
+  // Estadísticas
+  totalRedeemed   Int      @default(0)
+  totalValue      Float    @default(0.0)
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  redemptions     RewardRedemption[]
+
+  @@index([type])
+  @@index([pointsCost])
+  @@index([isActive])
+  @@index([featured])
+  @@map("rewards")
+}
+
+// Historial de canjes de recompensas
+model RewardRedemption {
+  id              String   @id @default(cuid())
+  userId          String
+  rewardId        String
+  
+  // Puntos
+  pointsSpent     Int
+  
+  // Estado
+  status          String   @default("PENDING") // PENDING, APPROVED, DELIVERED, CANCELLED
+  
+  // Aprobación (para recompensas físicas)
+  approvedBy      String?
+  approvedAt      DateTime?
+  
+  // Entrega
+  deliveryMethod  String?  // EMAIL, IN_APP, PHYSICAL, COUPON
+  deliveryStatus  String?  // PENDING, SENT, DELIVERED
+  deliveredAt     DateTime?
+  trackingInfo    String?  // JSON con info de tracking
+  
+  // Código generado (para cupones, códigos de acceso, etc.)
+  generatedCode   String?
+  codeUsed        Boolean  @default(false)
+  codeUsedAt      DateTime?
+  
+  // Cancelación/Reembolso
+  cancelledAt     DateTime?
+  cancelReason    String?
+  refunded        Boolean  @default(false)
+  refundedAt      DateTime?
+  
+  // Metadatos
+  metadata        String?  // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  reward          Reward   @relation(fields: [rewardId], references: [id])
+
+  @@index([userId])
+  @@index([rewardId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("reward_redemptions")
+}

@@ -1,0 +1,3464 @@
+¿Quieres que la app funcione en tiempo real (procesando video continuamente)  si
+
+¿La aplicación será solo para Android, o también iOS? ambos puede ser en flutter
+
+¿Quieres que funcione completamente offline, o permitirá sincronización en la nube? ambos 
+¿Tienes planeado usar modelos YOLOv8/YOLOv9 o transformer-based (como RT-DETR) según el rendimiento del móvil? por el momento solo yolo
+¿Deseas permitir que el usuario cargue sus propios modelos (repositorio interno), o solo modelos preinstalados? seria bueno que pudiera cargar modelos pero desde la nube ,esto nos ayudaria a crear un plus y generar ingresos
+
+¿Qué precisión necesitas para:
+
+detección de automóviles puede ser en un rango entre 80 y 95
+
+reconocimiento de placas? puede ser en un rango entre 80 y 95
+
+¿Quieres tracking por:
+
+Número de placa
+
+Tracking ID del modelo (ej: ByteTrack/DeepSort)
+
+Ambas cosas? ambas cosas
+como cada detección marca, modelo y deteccion de placas representa un modelo distinto, en caso de no tener el modelo , se valida campos en blanco, sconsidera esto en la planeación,
+
+¿La base será local (SQLite) o remota? local, pero debe de permiritnos actualizar en la nube
+
+¿Necesitas cifrado de datos por temas de privacidad? si
+
+¿Requieres consultas como:
+
+“Muéstrame autos vistos más de X veces” si pero seria en una interfaz en la nube
+
+“Autos vistos en un área específica” si pero seria en una interfaz en la nube
+
+“Historial de un auto por placa”? si pero seria en una interfaz en la nube
+
+¿La app debe registrar:
+
+Coordenadas exactas (GPS) si
+
+Dirección aproximada si
+
+Ambas? ambas
+
+¿Cada cuántos segundos/minutos se guardará la localización? cada 2 segundos
+
+
+Si detecta una placa en la base de “autos robados”, ¿qué tipo de alerta?
+
+Notificación push si
+
+Alarma sonora si, solo una vez
+
+Mensaje emergente no
+
+Activar modo seguimiento automático si 
+
+
+¿La app será solo para uso personal o piensas distribuirla públicamente? publica
+
+¿Quieres incluir advertencias legales al usar reconocimiento de placas? si 
+
+¿Qué gama de teléfonos planeas soportar? gama media que pueda soportar los modelos de inferencia y el procesamientod e imágenes y video.
+
+¿Aceptarías que la app:
+
+Reduzca resolución del video para mejorar FPS si
+
+Procese 1 fotograma cada X segundos en lugar de 1 por segundo? si , recomiendame algo.
+
+
+¿Quieres una interfaz avanzada con estadísticas, mapas, gráficos? si pero ya seria un servicio en la nube
+
+¿O algo minimalista tipo panel de detección + registros? esto seria para la app
+
+
+considera en la planeaxcion hacer todo modular, cada tarea y cada cosa independiente por modulos, y al final juntar en la interfaz todas las funciones que nos permitan realizar las tareas permitidas.
+ también piensa en un algoritmo que nos permita definir si estamos siendo vigilados o perseguidos con bases tecnicas de contra vigilancia en base a la información generada y capturada por la app, vamos a centrarnos en la planeación y esto será puro texto nada de código 
+
+
+
+Perfecto — con tus respuestas ya claras (Android+iOS en Flutter, YOLO offline + modelos cargables desde la nube, almacenamiento local cifrado + sync opcional, tracking por placa+ID, guardado GPS cada 2s, alertas push+sonora y modo seguimiento, app pública, UI móvil minimal y dashboard cloud) armo a continuación un plan de producto y arquitectura modular completo, enfocado a viabilidad, privacidad, rendimiento y la parte de contra-vigilancia que mencionas. Todo texto —sin código— listo para usar como especificación.
+
+1) Visión general y objetivos
+
+App móvil multiplataforma (Flutter) que realiza inferencia en dispositivo usando modelos YOLO para: detectar vehículos, reconocer marca/modelo/color y leer placas (OCR).
+
+Guarda registro local cifrado: placa (si se detectó), marca/modelo, color, coordenadas, timestamp, modelo usado, confidence y media (imagen recorte).
+
+Permite cargar modelos desde la nube (repositorio/versionado) para monetizar (marketplace / suscripción).
+
+Modo “vigilancia / seguimiento”: cuando detecta una placa listada como robada o cuando la heurística de persecución lo sugiere, activa tracking avanzado (ByteTrack/DeepSort + re-detección por placa) y genera alertas.
+
+Sync opcional a dashboard cloud para análisis agregados y consultas avanzadas (historial, conteos por área, reportes).
+
+2) Arquitectura modular (alto nivel)
+
+Módulos independientes y comunicantes (micro-módulos dentro de la app):
+
+UI / UX (Flutter)
+
+Pantalla principal de cámara (modo detección).
+
+Panel local de registros (lista, detalle).
+
+Ajustes: calidad video, fps de inferencia, modelos activos, privacidad.
+
+Modo manual: iniciar/detener vigilancia.
+
+Cámara & Preprocesamiento
+
+Captura video.
+
+Reductor de resolución configurable (ej. 1280×720, 640×360).
+
+Extractor de frames (configurable): 0.5–2 fps por defecto recomendado (ver sección rendimiento).
+
+Corrección orientación / ROI (áreas de interés).
+
+Runner de inferencia (on-device)
+
+Motor de inferencia compatible con modelos YOLO (TFLite/ONNX/NNAPI/Vulkan) según plataforma.
+
+Pipeline por frame: detect autos → para cada caja: detectar marca/modelo/color (modelo opcional) → crop placa → OCR (modelo OCR).
+
+Plugin para cargar modelos remotos (descarga/verificación/firmado).
+
+Tracking & Association
+
+Multi-object tracker (ByteTrack/DeepSort).
+
+Asociación entre trackID ↔ placa (si OCR devuelve texto) y / o atributos (marca/color).
+
+Gestión de re-identificación temporal y fusión de tracks.
+
+Almacenamiento local (capa)
+
+DB local: SQLite/SQLCipher (cifrado).
+
+Esquema con índices para consultas rápidas.
+
+Sync / Cloud API
+
+Envío opcional cifrado (TLS) a backend para dashboard, con política configurable de subida (solo Wi-Fi, solo con permiso, anonimizado).
+
+Repositorio de modelos (versionado, metadatos, firmas).
+
+Alertas & Notificaciones
+
+Push local/remote.
+
+Sonido único para alerta crítica.
+
+Trigger para “activar modo seguimiento automático”.
+
+Privacidad & Legal
+
+Pantalla de consentimiento, política de datos, exportación/borrado, configuraciones de retención.
+
+Admin / Marketplace (backend)
+
+Gestión modelos, pagos/suscripciones, panel de reportes y consultas (web).
+
+Analytics / Telemetría (opt-in)
+
+Métricas de rendimiento y calidad de detección (sin datos PII si no se autoriza).
+
+3) Esquema de datos (registro local — campos sugeridos)
+
+id (UUID)
+
+timestamp (ISO8601)
+
+lat, lon, accuracy
+
+address (reverse geocode, opcional)
+
+frame_path (ruta local al recorte/imagen)
+
+vehicle_box (x,y,w,h en frame)
+
+detector_model (nombre_version)
+
+detector_confidence (float)
+
+plate_text (nullable)
+
+plate_confidence (nullable)
+
+plate_model (nullable)
+
+make (nullable), make_confidence
+
+model (nullable), model_confidence
+
+color (nullable), color_confidence
+
+track_id (assigned by tracker)
+
+source_camera_id (para multi-cam)
+
+flags (robado_match, suspicious_score, uploaded)
+
+Metadata: device_model, app_version
+
+4) Pipeline de inferencia (por frame)
+
+Captura frame (reduced resolution).
+
+Ejecutar detector YOLO (vehículos + placas + atributos si el mismo modelo).
+
+Para cada detección vehículo:
+
+Crop + pasar por modelos opcionales: marca/modelo/color.
+
+Para cada placa detectada:
+
+Crop → OCR (modelo OCR).
+
+Tracker actualiza/crea trackIDs.
+
+Asociar placa_text → trackID.
+
+Guardar evento en DB local con todos los metadatos.
+
+Evaluar reglas/heurística de alerta → si corresponde, notificación + activar seguimiento (aumentar sampling fps & reidentificación).
+
+5) Tracking: enfoque recomendado
+
+Combinado: usar ByteTrack/DeepSort para tracking visual + verificación por OCR de placa para consolidar identidad.
+
+Lógica:
+
+Si trackID tiene plate_text confiable (conf > X), anclar plate como identificador primario.
+
+Si no hay plate, usar appearance embedding + color + shape + temporal heuristics.
+
+Reintentos de OCR cuando crop mejora (usar múltiples frames dentro del mismo track para vote/consensus del texto).
+
+Manejar casos donde un detector no existe: dejar campos en blanco y guardar detección del track con placeholders (como pediste).
+
+6) Rendimiento y recomendaciones de sampling/resolución
+
+Guardado de GPS cada 2s (ya especificado).
+
+Recomendado para inferencia real en gama media:
+
+Frame sampling por inferencia: configurable entre 0.5 fps y 2 fps. Recomendación inicial: 1 fps (un frame por segundo); en modo seguimiento aumentar a 2 fps o más si device lo permite.
+
+Resolución: usar 640×360 o 960×540 para detección general; crops para OCR en mayor resolución (re-crop del frame original si está disponible). Ajustable según CPU/GPU.
+
+Boost: en seguimiento, subir resolución de crops y fps temporalmente.
+
+Permitir perfil de rendimiento en ajustes: Ahorro batería / Balance / Rendimiento.
+
+7) Mecanismo de modelos desde la nube (repositorio y monetización)
+
+Backend que almacena paquetes de modelos (archivo + metadata: nombre, tipo, versión, input_size, labels, fingerprint, signed).
+
+Descarga con verificación (hash + firma) y control de acceso (modelo gratis / de pago).
+
+Modelos instalados se muestran en UI con switch activado/desactivado.
+
+Versionamiento y rollback.
+
+Modelos pueden ser específicos por tarea: vehicle_detector_v1, plate_detector_v2, ocr_v1, make_model_v1.
+
+Monetización: compras in-app para modelos premium, suscripción para actualizaciones automáticas y procesamiento en cloud.
+
+8) Privacidad, seguridad y aspectos legales
+
+Local por defecto: todo local y cifrado (usar SQLCipher o almacenamiento cifrado del sistema).
+
+Consentimiento y Avisos: primer lanzamiento mostrar advertencia legal sobre reconocimiento de placas, uso de datos y responsabilidad. Permitir aceptar/declinar.
+
+Opciones de compartición: upload manual o automático a cloud (opt-in). Opción para anonimizar (borrar placa antes de upload).
+
+Retención: políticas configurables (p.ej. borrar locales después de 30/90 días).
+
+Cifrado en tránsito: TLS 1.2+ y autenticación de cliente si se requiere.
+
+Minimización: por defecto almacenar texto de placa y hashes en vez de imagen completa cuando no es necesario.
+
+Cumplimiento: preparar textos para cumplir con normativas locales (avisos, canales para solicitudes de borrado).
+
+Logs y Telemetría: opt-in, sin PII por defecto.
+
+9) Heurística / Algoritmo de contra-vigilancia (detectar si nos siguen)
+
+Diseñar un score de persecución basado en evidencias múltiples. Componentes:
+
+Repetición temporal
+
+Misma placa/trackID vista N veces en ventana temporal T (p. ej. >3 veces en 1h → +score).
+
+Patrón espacial
+
+Visto en múltiples puntos con dirección hacia el mismo destino del usuario (p. ej. seguimiento por desplazamiento).
+
+Proximidad y distancia
+
+Si un vehículo aparece consistentemente a distancias cortas (< X metros) durante desplazamiento.
+
+Persistencia
+
+Si el mismo vehículo persiste durante más de M minutos/acciones.
+
+Comportamiento anómalo
+
+Giro para seguirte, dar la vuelta, aparcar y esperar cerca de tu residencia o llegada frecuente a tus lugares.
+
+Frecuencia vs baseline
+
+Construir baseline local: autos comunes en zona. Vehículos con baja frecuencia en baseline que te aparezcan repetidamente aumentan score.
+
+Confianza de detección
+
+Sumar evidencia solo si detecciones/plates tienen confianza mínima. Usar consensus across frames (votos).
+
+Ponderación y decadencia
+
+Score acumulativo decae con el tiempo si no hay nuevos eventos.
+
+Umbrales y acciones
+
+Score < T1: monitor.
+
+T1 ≤ Score < T2: notificación (sugiere atención).
+
+Score ≥ T2: alerta sonora + sugerencia de acciones (grabación detallada, navegación a lugar público, compartir reporte opcional).
+
+Notas: el algoritmo no “prueba” persecución, sólo sugiere probabilidad basada en patrones cuantificables. Debe evitar false alarms — usar umbrales conservadores y confirmar por múltiples evidencias.
+
+10) Manejo de falsos positivos / mejora de la OCR
+
+Voting: combinar OCR de varios frames del mismo track para construir la placa final con mayor confianza.
+
+Post-processing OCR: reglas de formato local (p. ej. patrones de placas mexicanos) para validar.
+
+Fallback: si OCR baja confianza, guardar plate_text como null y mantener trackID para futuras detecciones.
+
+Reentrenamiento: proveer mecanismo para marcar falsos positivos en la app y (opcional) enviar anotaciones al backend para mejorar modelos.
+
+11) Seguridad operacional / ataques adversarios
+
+Validación de modelos remotos (signature/hashing).
+
+Limitar qué tipos de modelos se cargan (solo formatos permitidos).
+
+UI para denunciar mal uso.
+
+Rate limit y controls en backend para evitar abuso.
+
+12) Pruebas y métricas
+
+Métricas que medir:
+
+Precision / recall del detector (vehículo / placas).
+
+OCR accuracy by crop size / lighting.
+
+FPS y latencia promedio por device profile.
+
+False positive rate for alerts.
+
+Test plan:
+
+Datasets reales en varias condiciones (día, noche, lluvia).
+
+Pruebas en dispositivos de gama baja/ media/ alta.
+
+Pruebas de campo en tus rutas habituales para crear baseline.
+
+13) UX y flujos clave (resumidos)
+
+Configuración inicial: permisos (camara, ubicación, notificaciones), aviso legal, opciones de privacidad.
+
+Modo detección (app): cámara en vivo + indicadores de detección; botón “start surveillance”.
+
+Evento detectado: guardar en DB; si match robado o score alto → push + sonido único; ofrecer “seguir” (activar tracking).
+
+Registro local: lista con filtros (fecha, placa, área).
+
+Dashboard cloud: mapas con heatmaps, consultas “visto > X veces”, export CSV, reportes.
+
+Ajustes: calidad, fps de inferencia, modelos activos, retención y sync.
+
+14) Monetización y roadmap de features
+
+MVP (6–10 semanas estimado de PM/planning — no pediré tiempo pero describo entregables):
+
+Detección vehicular básica en dispositivo, guardar registros locales cifrados, OCR simple, tracking básico.
+
+Fase 2:
+
+Marketplace de modelos (descarga & pago), mejora OCR, dashboard cloud.
+
+Fase 3:
+
+Algoritmo contra-vigilancia avanzado, suscripciones, análisis forense y APIs para exportar reportes.
+
+Revenue: venta modelos premium, subscripciones para dashboard/alertas en la nube, servicios de etiquetado/retraining.
+
+15) Riesgos legales y mitigaciones
+
+Legalidad de reconocimiento de placas varía por país. Mitigaciones:
+
+Texto claro y aceptación de responsabilidad.
+
+Recomendación de uso personal y no publicación de datos sin consentimiento.
+
+Opciones de anonimización y borrado.
+
+Consultar asesoría legal local antes del lanzamiento público.
+
+16) Checklist de implementación (prioridades para el MVP)
+
+Diseño UI MVP (pantalla cámara + registros).
+
+Integración cámara + frame extractor + reducción resolución.
+
+Motor de inferencia on-device con modelo YOLO vehículo.
+
+Detector de placa YOLO + OCR (vía un pipeline simple).
+
+Tracker (ByteTrack/DeepSort) y asociación placa↔track.
+
+DB local cifrada + esquema.
+
+Guardado GPS cada 2s y reverse geocode opcional.
+
+Alertas básicas (push + sonido) + toggle seguimiento.
+
+Panel de ajustes (fps, resolución, consentimiento).
+
+Backend mínimo para hosting de modelos y autenticación (para fase 2).
+
+Si quieres, puedo ahora:
+
+Convertir esto en historias de usuario y criterios de aceptación (ideal para sprints).
+
+O armar un esquema de base de datos SQL detallado y endpoints del backend (sin código, solo spec).
+
+O preparar un documento de privacidad / aviso legal de ejemplo.
+
+Dime cuál de esos tres prefieres y lo genero en texto —o si quieres que profundice la heurística de contra-vigilancia con fórmulas y ejemplo de scoring, lo hago también.
+
+
+Aquí va una sugerencia clave para evitar errores críticos en la app:
+👉 Definir un “Catálogo Oficial de Modelos” con atributos estándar y reglas estrictas antes de permitir que cualquier módulo use un modelo para inferencia.
+
+Así evitamos que la app confunda cuál modelo sirve para qué (vehículos, placas, color, OCR, etc.), se mezclen versiones incompatibles o que un usuario cargue un modelo que no cumple los requisitos.
+
+Luego integro esto al plan general.
+
+✔️ Sugerencia: Crear un “Esquema de Identidad de Modelos (SIM)”
+
+Esto es como un estándar que cada modelo debe cumplir para que la app pueda:
+
+reconocer automáticamente qué tarea realiza,
+
+validar que es compatible con el pipeline,
+
+evitar errores de ejecución,
+
+seleccionar dinámicamente el modelo correcto según la tarea.
+
+Cada modelo debe incluir un archivo de metadatos con esta estructura mínima:
+SIM: Esquema de Identidad de Modelos
+
+model_id: identificador único (ej. vehicle_detector_yolov8n_v1)
+
+task_type: tipo de tarea (solo uno principal)
+
+vehicle_detection
+
+plate_detection
+
+plate_ocr
+
+vehicle_make_detection
+
+vehicle_model_detection
+
+vehicle_color_detection
+
+tracking_embedding (si existiera un modelo de embeddings)
+
+input_size: resolución esperada (ej. 640×640)
+
+framework: YOLO, ONNX, TFLite, TRT, etc.
+
+confidence_threshold: recomendado por el proveedor
+
+iou_threshold: recomendado por el proveedor
+
+labels: lista exacta de labels que el modelo devuelve
+
+version: versión semántica (ej. 1.0.3)
+
+publisher: quien lo creó (para marketplace)
+
+platform_compatibility: Android / iOS / ambas
+
+precision_estimate: rango estimado (80–95%)
+
+file_hash: para validar integridad
+
+signed: boolean, para modelos verificados oficialmente
+
+✔️ Reglas del SIM que la app debe aplicar
+
+Para no cometer errores y evitar inferencias equivocadas:
+
+1) Solo un modelo por tarea dentro del pipeline
+
+Si hay dos modelos de plate_detection, la app elige uno:
+
+el que tenga “signed = true”
+
+o el de versión más reciente
+
+o el que el usuario seleccione en ajustes
+
+2) Si un modelo no define task_type, la app lo rechaza
+
+Evita usar un modelo YOLO genérico que no fue hecho para placas.
+
+3) Si el modelo no coincide con el pipeline, marcar error
+
+Ejemplos:
+
+Un modelo vehicle_detection no puede ser usado como OCR.
+
+Un modelo plate_ocr sin lista de caracteres permitidos no se usa.
+
+Un modelo para make/model debe tener labels de marcas/vehículos.
+
+4) Política de fallback
+
+Si un modelo está ausente:
+
+La app registra los campos en null (como tú pediste).
+
+El pipeline continúa sin bloquearse.
+
+La UI debe indicar que “Modelo no disponible”.
+
+5) Incompatibilidad de input_size
+
+Si el modelo requiere 640×640 y el pipeline usa 320×320, se ajusta o se rechaza.
+
+6) Control de versiones
+
+La app no ejecuta un modelo cuyo framework no sea compatible con:
+
+NNAPI/TFLite en Android
+
+CoreML / Accelerate en iOS
+
+✔️ Integración del SIM (Esquema de Identidad de Modelos) al Plan General
+
+Ahora integro formalmente este estándar dentro del plan que ya hicimos:
+
+🔵 Inserción en el Plan General
+🔹 NUEVO MÓDULO 3.1: Gestor de Modelos (Model Registry Manager)
+
+Cada modelo descargado o preinstalado debe incluir archivo SIM.
+El gestor:
+
+Lee model.json del modelo.
+
+Valida:
+
+task_type
+
+input_size
+
+framework
+
+labels
+
+hash y firma
+
+Lo registra en el catálogo local.
+
+Deshabilita modelos conflictivos.
+
+Decide qué modelo usar por tarea:
+
+prioridad: signed > versión mayor > selección del usuario.
+
+Si un modelo requerido no existe → pipeline ejecuta en modo limitado.
+
+🔹 NUEVO REQUISITO EN EL PIPELINE:
+
+El pipeline solo usa modelos que cumplan SIM completo.
+Si un modelo no está registrado, se ignora automáticamente.
+
+🔹 Actualización en Módulo 7 (Marketplace de Modelos)
+
+Antes de publicar un modelo en la nube:
+
+Debe incluir SIM obligatorio.
+
+El backend valida integridad.
+
+Se rechazan modelos sin labels correctos o sin task_type.
+
+Así se evita que un usuario cargue un YOLO que detecta perros en lugar de placas y rompa la app.
+
+🔹 Actualización en Base de Datos
+
+Agregar campos:
+
+model_used_vehicle
+
+model_used_plate
+
+model_used_ocr
+
+model_used_make
+
+model_used_color
+
+Para auditoría y debugging.
+
+🔹 Actualización del Algoritmo de Contra-Vigilancia
+
+Cuando una detección usa un modelo no confiable:
+
+Reducir peso de evidencia en el “score de persecución”
+
+Ignorar OCR con baja confianza o modelo sin validación SIM.
+
+🔹 Actualización de UI
+
+Pantalla “Modelos instalados”:
+
+Mostrar badge "Oficial" si signed = true
+
+Mostrar si un modelo está “incompatible”
+
+Permitir activar/desactivar por tarea
+
+✔️ Resultado
+
+Con el SIM integrado:
+
+Evitamos mezclar modelos incorrectos.
+
+Prevenimos inferencias equivocadas.
+
+Aseguramos compatibilidad en Android/iOS.
+
+Podemos escalar el marketplace sin romper la app.
+
+Podemos depurar fácilmente errores de detección.
+
+El pipeline es estable y modular.
+
+Si quieres, ahora puedo:
+
+
+A continuación te presento la Especificación Técnica – Versión 1.0 completamente integrada, organizada, modular, clara y lista para ser usada como documento base del proyecto.
+Todo en texto, sin código.
+
+📘 Especificación Técnica – App de Reconocimiento Vehicular y Contra-Vigilancia
+Versión 1.0 – Documento Final
+
+Tecnologías base: Flutter (Android/iOS), YOLO on-device, SQLite cifrado, backend opcional para modelos y dashboard.
+Modo operativo: inferencia en tiempo real sobre video del móvil, con captura de frames y tracking.
+
+1. Objetivo General
+
+Desarrollar una aplicación móvil capaz de:
+
+Detectar vehículos.
+
+Detectar y leer placas en tiempo real.
+
+Reconocer atributos (color, marca, modelo) si hay modelos disponibles.
+
+Registrar evidencia (placa, atributos, coordenadas, tiempo).
+
+Detectar vehículos robados comparando contra listas registradas.
+
+Ejecutar tracking y análisis para identificar patrones de posible vigilancia o persecución.
+
+Operar en modo offline, pero con capacidad de sincronizar datos a la nube.
+
+Cargar modelos especializados desde un repositorio remoto (marketplace).
+
+Mantener privacidad y seguridad mediante cifrado y políticas claras.
+
+2. Arquitectura General
+
+La arquitectura se basa en módulos independientes, que se comunican mediante interfaces bien definidas. Esto asegura mantenimiento, escalabilidad y reducción de errores.
+
+2.1 Módulos Principales
+
+UI/UX – Interfaz Móvil (Flutter)
+
+Manejador de Cámara & Preprocesamiento
+
+Motor de Inferencia On-Device (YOLO)
+
+Gestor de Modelos (Model Registry Manager)
+
+Módulo de Tracking (ByteTrack/DeepSort)
+
+Registro Local (DB cifrada SQLCipher)
+
+GPS & Contexto Espacial
+
+Motor de Alertas (push, sonido, seguimiento)
+
+Algoritmo de Contra-Vigilancia
+
+Sincronización y API Cloud
+
+Marketplace de Modelos
+
+Privacidad & Seguridad
+
+Dashboard Cloud (analítica web)
+
+3. Esquema de Identidad de Modelos (SIM)
+
+Para evitar errores y asegurar que cada modelo se use correctamente, todos los modelos requieren un archivo de metadatos que define su función.
+
+3.1 Campos obligatorios del SIM
+
+model_id
+
+task_type (único):
+
+vehicle_detection
+
+plate_detection
+
+plate_ocr
+
+vehicle_make_detection
+
+vehicle_model_detection
+
+vehicle_color_detection
+
+input_size
+
+framework (YOLO, ONNX, TFLite, etc.)
+
+version
+
+labels
+
+publisher
+
+confidence_threshold
+
+iou_threshold
+
+platform_compatibility
+
+precision_estimate
+
+file_hash
+
+signed
+
+3.2 Reglas del SIM
+
+La app solo ejecuta modelos con task_type válido.
+
+Si un modelo no define su tarea → se rechaza.
+
+Solo puede haber un modelo activo por tarea.
+
+Si faltan modelos → el pipeline sigue pero deja campos en null.
+
+El SIM se valida en cada actualización o descarga.
+
+4. Pipeline Completo de Inferencia
+4.1 Ciclo por cada frame
+
+Captura de frame desde la cámara (resolución configurable).
+
+Paso por modelo de detección vehicular.
+
+Para cada vehículo detectado:
+
+Identificación de color, marca y modelo (si existen modelos SIM válidos).
+
+Detección de placas.
+
+Crop de placa → pasar por OCR (SI existe modelo de OCR registrado).
+
+Ingreso al tracker para asignar track_id.
+
+Asociación de track_id ↔ placa + atributos.
+
+Registro del evento en la base de datos.
+
+Verificación contra lista de vehículos robados.
+
+Evaluación por el algoritmo de contra-vigilancia.
+
+Generación de alertas según corresponda.
+
+5. Tracking
+
+El sistema usa un algoritmo híbrido:
+
+Visual Tracking: ByteTrack / DeepSort (embeddings y movimiento).
+
+Identity Tracking: si la placa es legible, se usa como referencia primaria.
+
+Heurísticas:
+
+Si la placa es detectada con baja confianza → no se ancla.
+
+Atributos como color y tipo de vehículo sirven como realimentación.
+
+6. Base de Datos Local
+
+Uso de SQLite cifrado con SQLCipher.
+
+6.1 Campos mínimos por registro
+
+id (UUID)
+
+timestamp
+
+lat, lon, accuracy
+
+address (opcional)
+
+frame_path (imagen recortada opcional)
+
+vehicle_box (posiciones)
+
+plate_text + confianza
+
+make, model, color + confianza
+
+track_id
+
+modelos usados en cada tarea:
+
+model_vehicle
+
+model_plate
+
+model_ocr
+
+model_make
+
+model_color
+
+flags:
+
+robado_match
+
+suspicious_score
+
+uploaded (boolean)
+
+7. GPS y Metadatos Espaciales
+
+Registro de coordenadas cada 2 segundos.
+
+Reverse geocoding opcional para guardar direcciones aproximadas.
+
+Precisión mínima configurable.
+
+8. Motor de Alertas
+
+Tipos:
+
+Push local (si vehículo robado).
+
+Alarma sonora → una sola vez por evento.
+
+Activar Modo Seguimiento:
+
+Aumenta FPS de inferencia.
+
+Aumenta resolución del crop.
+
+Prioriza tracking estable.
+
+9. Algoritmo de Contra-Vigilancia
+
+Analiza patrones espaciales/temporales para estimar probabilidad de persecución.
+
+9.1 Indicadores principales
+
+Reaparición frecuente del mismo vehículo / placa.
+
+Proximidad constante en rutas móviles.
+
+Persistencia temporal anormal.
+
+Coincidencia de movimientos: giros, paradas, trayectoria en paralelo.
+
+Aparición cerca de domicilio o lugar de trabajo.
+
+Rara frecuencia del vehículo en el baseline de la zona.
+
+9.2 Score de vigilancia
+
+Se construye un puntaje dinámico:
+
+Score1 = repetición temporal
+
+Score2 = cercanía
+
+Score3 = coincidencia espacial
+
+Score4 = rareza del vehículo
+
+Score5 = persistencia
+
+Score final = ponderación + decaimiento temporal.
+
+9.3 Acciones por umbral
+
+Nivel 1: mensaje informativo.
+
+Nivel 2: alerta push + sugerencia de acción.
+
+Nivel 3: alerta sonora + inicio automático de seguimiento reforzado.
+
+10. Gestión de Modelos – Model Registry Manager (MRM)
+
+El módulo responsable de cumplir el SIM.
+
+10.1 Funciones
+
+Validar firma y hash de cada modelo descargado.
+
+Verificar compatibilidad de:
+
+tarea (task_type)
+
+input_size
+
+framework
+
+listas de labels
+
+Registrar modelos activos.
+
+Resolver conflictos (solo un modelo por tarea).
+
+Informar a la UI del estado del modelo.
+
+Rechazar modelos incorrectos o corruptos.
+
+11. Marketplace de Modelos
+
+Los modelos se publican con su archivo SIM.
+
+Validados por backend antes de estar disponibles.
+
+Tipos de modelos:
+
+detectores mejorados
+
+OCR premium
+
+color, marca y modelo
+
+modelos optimizados para dispositivos específicos
+
+Monetización:
+
+venta por modelo
+
+bundles
+
+suscripción mensual para actualizaciones
+
+12. Sincronización con la Nube
+
+Subida de datos cifrados mediante API REST.
+
+El usuario elige:
+
+Solo Wi-Fi
+
+Solo manual
+
+Automática
+
+Se envían:
+
+registros (placa, coords, timestamp…)
+
+imágenes recortadas (opcional)
+
+metadatos de detección
+
+13. Dashboard Web
+
+Funciones:
+
+Historial por placa.
+
+Frecuencia de autos por zona.
+
+Mapa de detecciones.
+
+Listado de autos vistos repetidamente.
+
+Exportar CSV/Excel.
+
+Configuración de listas de vehículos robados.
+
+Estadísticas de modelos.
+
+14. Privacidad y Seguridad
+
+DB cifrada localmente.
+
+Cifrado TLS en sincronización.
+
+Aviso legal obligatorio en primer inicio.
+
+Controles de retención de datos:
+
+30 días
+
+90 días
+
+indefinido
+
+Opción para borrar todo local/cloud.
+
+Modo offline total.
+
+Telemetría opcional (sin PII).
+
+15. Rendimiento (Recomendaciones Técnicas)
+
+Frame sampling recomendado:
+
+Normal: 1 fps
+
+Seguimiento: 2–4 fps
+
+Ahorro batería: 0.5 fps
+
+Resolución recomendada:
+
+640×360 para detección
+
+960×540 para OCR crops
+
+Optimización:
+
+Pre-carga de modelos
+
+Batch inferencing
+
+Reducción temporal de carga si frame drop > umbral
+
+16. Flujos Principales
+16.1 Inicio de app
+
+Solicitud de permisos
+
+Aceptación de aviso legal
+
+Selección de modelos activos
+
+16.2 Modo detección
+
+Cámara → pipeline → DB
+
+Alertas → usuario
+
+16.3 Modo seguimiento
+
+Aumento FPS y resolución
+
+Tracking persistente
+
+Guardado intensivo de metadatos
+
+16.4 Consulta local
+
+Lista de registros
+
+Filtros básicos
+
+16.5 Sincronización
+
+Envío seguro al backend
+
+Visualización posterior en dashboard
+
+17. Roadmap del Proyecto
+Versión 1.0 (MVP)
+
+Detección vehicular
+
+Detección de placas
+
+OCR básico
+
+Tracking
+
+DB local cifrada
+
+Alertas mínimas
+
+UI móvil básica
+
+Versión 1.5
+
+Marketplace de modelos
+
+Algoritmo contra-vigilancia inicial
+
+Carga de modelos remotos
+
+Versión 2.0
+
+Dashboard completo
+
+Estadísticas avanzadas
+
+Tareas automáticas programadas
+
+Módulos de marca/modelo/color
+
+Versión 3.0
+
+Contra-vigilancia avanzada
+
+IA predictiva de patrones
+
+Sistema de reputación vehicular local (baseline)
+
+18. Riesgos y Consideraciones Legales
+
+Reconocimiento de placas puede estar regulado.
+
+Se debe incluir aviso de que la app:
+
+es para uso personal
+
+no sustituye denuncia formal
+
+no permite vigilancia ilegal
+
+Opción para desactivar guardado de imágenes.
+
+19. Conclusión
+
+Esta Especificación Técnica versión 1.0 define:
+
+estructura modular
+
+estándares de modelos (SIM)
+
+pipeline claro
+
+seguridad y privacidad
+
+plan de escalabilidad
+
+funcionamiento de contra-vigilancia
+
+UX móvil
+
+interacción con nube
+
+Con esta base, es posible comenzar diseño de arquitecturas internas, sprints, diagramas de flujo o prepararte para pasar al diseño de API o estructura de base de datos.
+
+
+Perfecto — voy a entregarte los tres entregables solicitados en este orden:
+
+Diagrama lógico del sistema (en texto).
+
+Historias de usuario con criterios de aceptación (listas prioritarias).
+
+Especificación de endpoints del backend (REST API) y esquemas JSON.
+
+Al final incluyo imágenes en formato ASCII (diagramas textuales) como “imágenes” según pediste. Todo es solo texto.
+
+1. Diagrama lógico del sistema (texto)
+
+Descripción general: sistema híbrido móvil+backend. La app Flutter actúa como cliente principal: captura video, ejecuta inferencia on-device (motores YOLO/TFLite), registra eventos localmente (SQLite cifrado), y sincroniza opcionalmente con el backend que ofrece repositorio/versionado de modelos, autenticación, almacenamiento cifrado, dashboard analítico y APIs para consultas / reportes.
+
+Componentes y relaciones (alto nivel)
+
+App móvil (Flutter)
+
+Submódulos: Cámara & Preprocesamiento → Model Registry Manager → Runner de Inferencia (on-device) → Tracking Engine → Local DB cifrada → GPS/Contexto → Alertas/Notificaciones → Sync Manager.
+
+Interfaz de usuario: pantalla cámara, registro local, ajustes modelos, consentimiento, pantalla de alertas.
+
+Backend
+
+Servicios: Auth & Users, Model Marketplace (hosting, validación SIM), Events API (recibe detecciones), Stolen Registry, Analytics & Dashboard, Notifications Service, Admin Portal.
+
+Almacenamiento: DB principal (relacional), object storage (imágenes recortadas opcional), colas (para procesamientos asíncronos), sistema de firmas/keys para modelos.
+
+Sincronización & Seguridad
+
+TLS + JWT o mTLS para APIs.
+
+Model signing + hash verification.
+
+Opciones de subida (Wi-Fi only, manual, auto) y política de retención.
+
+Flujos principales (resumen)
+
+Detección local: Video → frame sampling → inferencia (modelo vehicle_detector) → detección → crops → OCR si hay plate_detector+ocr → tracker asigna track_id → guardar en DB local (cifrada).
+
+Alerta inmediata: si plate coincide con stolen registry local/cloud → alerta push + sonido + activar modo seguimiento (incrementa fps).
+
+Sync: Sync Manager empaqueta eventos (según política) → cifrado/firmado → POST /events → backend almacena y encola para análisis.
+
+Model management: App solicita lista de modelos (GET /models) → descarga paquete firmado → MRM valida SIM → modelo activado.
+
+Dashboard: backend expone consultas de eventos, heatmaps, reportes, filtros por placa/área/tiempo.
+
+2. Historias de usuario y criterios de aceptación
+
+Ordenadas por prioridad (MVP → features adicionales).
+
+Epic A — Funcionalidad básica de captura y detección (MVP)
+Historia A1 — Como usuario, quiero iniciar vigilancia para detectar vehículos y placas en mi entorno.
+
+Criterios de aceptación:
+
+Al presionar “Iniciar vigilancia”, la app pide permisos (cámara, ubicación, notifs).
+
+La app procesa video y registra al menos 1 evento por segundo (configurable).
+
+Las detecciones guardadas contienen timestamp y coordenadas.
+
+Si el pipeline falla (p.ej. modelo faltante), la app no se cae; guarda evento con campos null y muestra aviso en UI.
+
+Historia A2 — Como usuario, quiero ver una lista local de eventos detectados.
+
+Criterios de aceptación:
+
+Lista accesible offline.
+
+Cada registro muestra: timestamp, placa (si existe), make/model/color (si existen), miniatura imagen crop (si existe), flags (robado, sospechoso).
+
+Filtro por fecha y búsqueda por texto.
+
+Historia A3 — Como usuario, quiero que la app emita una alerta si detecta una placa en la lista de robados.
+
+Criterios de aceptación:
+
+App compara detección contra lista local (y cloud si sync activo).
+
+Si coincide, emite notificación push y reproduce un sonido único exactamente una vez por evento.
+
+Se ofrece opción “activar seguimiento” que aumenta fps/resolución.
+
+Epic B — Modelos y marketplace (MVP+)
+Historia B1 — Como usuario administrador, quiero descargar modelos desde el repositorio oficial.
+
+Criterios de aceptación:
+
+GET /models devuelve lista con metadatos SIM.
+
+App valida firma/hash antes de activar.
+
+Solo un modelo activo por task_type.
+
+Historia B2 — Como usuario, quiero que la app rechace modelos incompatibles.
+
+Criterios de aceptación:
+
+Modelos sin task_type o con framework no soportado son rechazados.
+
+UI informa motivo del rechazo.
+
+Epic C — Tracking y contra-vigilancia (MVP+)
+Historia C1 — Como usuario, quiero que la app identifique vehículos que me aparecen repetidamente.
+
+Criterios de aceptación:
+
+Sistema acumula eventos por track_id y por plate_text.
+
+Dashboard/Local muestra frecuencia (número de apariciones en ventana T).
+
+Historia C2 — Como usuario, quiero recibir notificaciones cuando el “score de vigilancia” cruce umbral.
+
+Criterios de aceptación:
+
+Score definido por parámetros: recurrencia, proximidad, persistencia, rareza (baseline).
+
+Umbrales configurables en ajustes.
+
+Notificaciones por nivel (info, advertencia, crítica). En crítica, suena alarma + se activa seguimiento.
+
+Epic D — Sincronización y dashboard (post-MVP)
+Historia D1 — Como usuario, quiero que mis datos se sincronicen cifrados con la nube para analítica.
+
+Criterios de aceptación:
+
+Subida via HTTPS con JWT/tokens.
+
+Permisos para subir solo en Wi-Fi o manual.
+
+Dashboard muestra registros, heatmaps, filtros por placa/área/tiempo.
+
+Historia D2 — Como administrador, quiero gestionar y publicar modelos con SIM.
+
+Criterios de aceptación:
+
+Panel de admin exige SIM y firma antes de publicar.
+
+Validaciones automáticas en backend (labels, task_type, platform compat).
+
+Epic E — Privacidad y legal
+Historia E1 — Como usuario, quiero aceptar un aviso legal antes de usar la app.
+
+Criterios de aceptación:
+
+Primer inicio obliga a aceptar aviso.
+
+Opción para descargar política de privacidad.
+
+Opción para eliminar todos los datos locales y cloud.
+
+3. Especificación de endpoints del backend (REST) — Versión 1.0
+
+Notas generales:
+
+Base URL: https://api.example.com/v1
+
+Autenticación: OAuth2 / JWT Bearer tokens (endpoints de Auth abajo).
+
+Todas las respuestas JSON incluyen meta y data (con paginación cuando aplica).
+
+Rate limits: aplicable por API key/user.
+
+Versionado: v1 en path; admitir header Accept: application/vnd.app.v1+json.
+
+3.1 Autenticación & Usuarios
+POST /v1/auth/register
+
+Descripción: registrar nuevo usuario
+
+Body (JSON): { "email": "...", "password": "...", "display_name": "..." }
+
+Resp: 201 { "data": { "user_id": "...", "email": "..."} }
+
+POST /v1/auth/login
+
+Descripción: login; devuelve JWT
+
+Body: { "email":"...", "password":"..." }
+
+Resp: 200 { "data": { "token": "JWT...", "expires_in": 3600 } }
+
+POST /v1/auth/refresh
+
+Descripción: refresh token
+
+Body: { "refresh_token": "..." }
+
+3.2 Model Marketplace
+GET /v1/models
+
+Descripción: lista modelos disponibles (metadatos SIM)
+
+Query: ?task_type=&platform=&page=&per_page=
+
+Resp: 200 { "data":[ { model_id, task_type, version, precision_estimate, file_hash, signed, price, publisher } ] }
+
+GET /v1/models/{model_id}
+
+Descripción: detalle del modelo (metadatos SIM)
+
+Resp: 200 { "data": { full SIM fields, readme, changelog, sample_inputs } }
+
+POST /v1/models/{model_id}/download
+
+Descripción: iniciar descarga (genera URL pre-signed o plan de descarga)
+
+Auth: required
+
+Resp: 200 { "data": { "download_url": "...", "expires_at": "ISO" } }
+
+POST /v1/models/upload (Admin / Publisher)
+
+Descripción: subir nuevo paquete de modelo + SIM (proceso de validación)
+
+Body: multipart (model package, model.json SIM, publisher metadata)
+
+Resp: 201 { "data": { "model_id": "...", "status": "pending_validation" } }
+
+3.3 Stolen Registry
+GET /v1/stolen
+
+Descripción: listar placas registradas como robadas (filtrado por área/opciones)
+
+Query: ?country=&state=&updated_since=
+
+Resp: 200 { "data": [ { plate, reported_date, source, note } ] }
+
+POST /v1/stolen/report (Auth required)
+
+Descripción: agregar reporte (admin/verified)
+
+Body: { "plate": "...", "evidence": [ image_urls ], "reporter_id": "...", "notes": "..." }
+
+Resp: 201 { data: { id, plate } }
+
+3.4 Events / Sync
+POST /v1/events/batch
+
+Descripción: subir lote de eventos detectados (desde app)
+
+Headers: Authorization: Bearer <token>
+
+Body (JSON):
+
+{
+  "device_id":"uuid",
+  "events":[
+    {
+      "local_id":"uuid",
+      "timestamp":"ISO8601",
+      "lat":12.34, "lon":56.78, "accuracy":5,
+      "plate_text":"ABC123",
+      "plate_confidence":0.92,
+      "make":"NISSAN", "make_conf":0.86,
+      "model":"VERSA", "model_conf":0.80,
+      "color":"BLACK", "color_conf":0.77,
+      "track_id":"t-123",
+      "detector_models":{ "vehicle":"vehicle_detector_v1", "plate":"plate_det_v1", "ocr":"ocr_v1" },
+      "frame_hash":"sha256...",
+      "flags": { "robado_match": false, "suspicious_score": 0.2 }
+    }
+  ]
+}
+
+
+
+
+Resp: 202 { "data": { "received": n, "accepted": n } }
+
+GET /v1/events/{event_id}
+
+Descripción: obtener detalles de un evento (incluye URL imagen si almacenada)
+
+Resp: 200 { "data": { ... } }
+
+GET /v1/events
+
+Descripción: consultar eventos (filtros: plate, bbox, date_from, date_to, min_confidence, device_id, uploaded_only)
+
+Query: ?plate=&date_from=&date_to=&page=&per_page=
+
+Resp: paginated list.
+
+3.5 Analytics & Queries
+GET /v1/analytics/heatmap
+
+Descripción: devuelve agregación para mapa (buckets por geo-tiles)
+
+Query: ?bbox=&zoom=&date_from=&date_to=
+
+Resp: geojson-like buckets with counts.
+
+GET /v1/analytics/frequent-vehicles
+
+Descripción: devuelve vehículos con > X apariciones en ventana
+
+Query: ?min_count=&date_from=&date_to=&area=
+
+Resp: list sorted by count.
+
+GET /v1/analytics/vehicle-history/{plate}`
+
+Descripción: historial por placa (listado de eventos y summary)
+
+Resp: 200 { data: { plate: "...", total_seen: n, last_seen: ISO, events: [ ... ] } }
+
+3.6 Notifications / Webhooks
+POST /v1/notifications/register
+
+Descripción: registrar webhook para recibir alertas (admin / enterprise)
+
+Body: { "url":"https://...", "secret":"..." }
+
+POST /v1/notifications/test
+
+Descripción: probar envío (internal)
+
+Resp: 200
+
+3.7 Admin / Monitoring
+GET /v1/admin/models/pending
+
+Descripción: listar uploads pendientes de validación.
+
+POST /v1/admin/models/{model_id}/approve
+
+Descripción: aprobar publicación.
+
+GET /v1/health
+
+Descripción: estado del servicio (DB, storage, queue).
+
+3.8 Seguridad y formatos
+
+Autorización: JWT with scopes (models:download, events:upload, stolen:read, admin:*).
+
+Encryption at rest: backend encrypts images/object storage.
+
+Model signing: modelos deben venir con firma digital; backend valida y emite signed=true.
+
+Rate limiting: 100 req/min para endpoints públicos; límites más estrictos para uploads.
+
+4. Esquemas JSON clave (resúmenes)
+Modelo SIM (ejemplo)
+{
+  "model_id": "vehicle_detector_yolov8n_v1",
+  "task_type": "vehicle_detection",
+  "input_size": [640, 640],
+  "framework": "tflite",
+  "version": "1.0.0",
+  "labels": ["car", "truck", "motorbike"],
+  "publisher": "ACME_AI",
+  "confidence_threshold": 0.3,
+  "iou_threshold": 0.45,
+  "platform_compatibility": ["android", "ios"],
+  "precision_estimate": {"mAP50": 0.87, "range":[0.80,0.95]},
+  "file_hash": "sha256:abcd...",
+  "signed": true
+}
+
+Event (upload)
+
+(Ver body en POST /v1/events/batch arriba — usar formato consistentemente)
+
+5. Reglas operacionales (resumen breve)
+
+Un modelo por tarea: MRM fuerza unicidad.
+
+Fallback seguro: si falta OCR o model_make, dejar campo null, continuar pipeline.
+
+Score de vigilancia: solo sumar evidencia si model.signed == true o confidence > threshold; si no, ponderar con factor < 1.
+
+Política de subida: datos sensibles solo con opt-in del usuario; opción de anonimizar placas (hash) antes de subir.
+
+6. Consideraciones para desarrollo e integración
+
+SDK móvil: crear una capa ModelManager y InferenceRunner con interfaces desacopladas (para poder cambiar backend/formatos).
+
+Testing: endpoints deben aceptar lotes pequeños y grandes; incluir validaciones de schema y pruebas de integridad.
+
+Rollback: permitir marcar modelos como “unsafe” y forzar desactivación remota.
+
+7. Diagramas (imágenes al final) — representación ASCII
+Imagen 1 — Diagrama lógico de alto nivel
++----------------------+                +-------------------------+
+|  APP MÓVIL (Flutter) |  <---TLS/JWT--> |      BACKEND API        |
+|  + Camera Module     |                |  + Auth & Users         |
+|  + Preprocessing     |                |  + Model Marketplace    |
+|  + MRM (SIM)         |                |  + Events Ingest        |
+|  + Inference Runner  |                |  + Stolen Registry      |
+|  + Tracker Engine    |                |  + Analytics / Dashboard|
+|  + Local DB (SQLC)   |                |  + Notifications        |
+|  + Sync Manager      |                +-------------------------+
++----------+-----------+
+           |
+           | (option) Upload images / events
+           v
+     +-----------------+
+     | Object storage  |
+     +-----------------+
+
+Imagen 2 — Flujo de detección y sync (secuencia)
+[Camera] -> (frame) -> [Preproc] -> [YOLO vehicle_detector] -> for each box:
+      -> [Crop for attributes] -> [make/model/color models?] -> [plate detector] -> [OCR]
+      -> [Tracker] <-> associate plate_text
+      -> [Local DB insert]
+      -> if stolen_match -> [Alert Engine] (push + sound + mode_tracking)
+      -> [Sync Manager] -> POST /v1/events/batch -> [Backend]
+
+Imagen 3 — ER simplificado (tablas principales)
++----------------+     +----------------+    +------------------+
+| devices        |1---<| events         |>---1| models           |
+| device_id (pk) |     | event_id (pk)  |    | model_id (pk)    |
+| owner_user_id   |    | device_id (fk) |    | task_type        |
++----------------+     | timestamp      |    | version          |
+                       | lat, lon       |    | signed           |
+                       | plate_text     |    | ...              |
+                       | track_id       |    +------------------+
+                       | model_used_*   |
+                       +----------------+
+
+
+Si quieres, el siguiente paso concreto que puedo hacer ahora es generar los diagramas en imágenes (PNG/SVG) basados en los ASCII arriba, o convertir estas historias en tickets listos para Jira (epics → tasks → subtasks) o bien detallar el esquema SQL de la base de datos. Dime cuál prefieres que haga ahora y lo genero (texto o imagen según lo pidas).
+
+
+Perfecto. A continuación te entrego el esquema SQL completo, organizado en dos partes:
+
+Base de datos local del móvil (SQLite cifrado)
+
+Base de datos del backend (PostgreSQL recomendado)
+
+Todo está diseñado para cumplir los requisitos: modular, claro, extensible, preparado para sincronización, con soporte para modelos, tracking, eventos, contra-vigilancia y analítica.
+
+📦 1. BASE DE DATOS LOCAL (SQLite Cifrado)
+
+Esta base corre en el dispositivo del usuario. Debe estar cifrada (SQLCipher).
+
+Diseñada para:
+
+almacenar detecciones locales,
+
+guardar modelos descargados,
+
+manejar catálogo de placas robadas descargado,
+
+conservar sincronización incremental.
+
+🧱 Tabla: app_settings
+
+Guarda configuraciones del usuario y flags internos.
+
+CREATE TABLE app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+
+Ejemplos de keys: "sampling_rate", "upload_enabled", "api_token".
+
+🧱 Tabla: devices_info
+
+Identifica el dispositivo ante el backend.
+
+CREATE TABLE devices_info (
+    device_id TEXT PRIMARY KEY,
+    created_at INTEGER NOT NULL
+);
+
+🧱 Tabla: models_local
+
+Lista de modelos descargados y disponibles para inferencia.
+
+CREATE TABLE models_local (
+    model_id TEXT PRIMARY KEY,
+    task_type TEXT NOT NULL,              -- vehicle_detection, plate_detection, etc
+    version TEXT NOT NULL,
+    file_path TEXT NOT NULL,              -- ruta al archivo tflite/onnx
+    file_hash TEXT NOT NULL,
+    signed INTEGER NOT NULL DEFAULT 0,    -- 1=verificado/signed, 0=no
+    active INTEGER NOT NULL DEFAULT 0,    -- solo uno por tarea
+    downloaded_at INTEGER NOT NULL
+);
+
+
+Clave: task_type + active = 1 ⇒ un único modelo activo por categoría.
+
+🧱 Tabla: stolen_plates_local
+
+Lista local descargada del servidor para detección inmediata.
+
+CREATE TABLE stolen_plates_local (
+    plate_text TEXT PRIMARY KEY,
+    source TEXT,
+    reported_date INTEGER,
+    updated_at INTEGER NOT NULL
+);
+
+🧱 Tabla: events_local
+
+Registro principal de detecciones locales.
+Contiene TODA la información que capturamos por frame.
+
+CREATE TABLE events_local (
+    local_id TEXT PRIMARY KEY,
+    timestamp INTEGER NOT NULL,
+    lat REAL,
+    lon REAL,
+    accuracy REAL,
+    
+    vehicle_conf REAL,
+    
+    plate_text TEXT,
+    plate_conf REAL,
+
+    make TEXT,
+    make_conf REAL,
+    model TEXT,
+    model_conf REAL,
+    color TEXT,
+    color_conf REAL,
+
+    track_id TEXT,
+
+    vehicle_model_id TEXT,   -- modelo usado para detección del vehículo
+    plate_model_id TEXT,     -- modelo usado para detectar placa
+    ocr_model_id TEXT,       -- modelo usado para OCR
+
+    frame_hash TEXT,         -- hash del frame para integridad
+
+    flag_stolen_match INTEGER DEFAULT 0,
+    suspicious_score REAL DEFAULT 0.0,
+
+    synced INTEGER DEFAULT 0,     -- 0 = no enviado, 1 = enviado a backend
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+
+Índices recomendados:
+
+CREATE INDEX idx_events_plate ON events_local(plate_text);
+CREATE INDEX idx_events_timestamp ON events_local(timestamp);
+CREATE INDEX idx_events_synced ON events_local(synced);
+CREATE INDEX idx_events_track ON events_local(track_id);
+
+🧱 Tabla: event_images
+
+Miniaturas o recortes locales (opcional, según configuración).
+
+CREATE TABLE event_images (
+    local_id TEXT PRIMARY KEY,
+    image_path TEXT NOT NULL,  -- archivo jpg o webp
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY(local_id) REFERENCES events_local(local_id)
+);
+
+🧱 Tabla: sync_log
+
+Manejo de sincronización incremental.
+
+CREATE TABLE sync_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_count INTEGER NOT NULL,
+    synced_at INTEGER NOT NULL,
+    status TEXT NOT NULL          -- success | partial | failed
+);
+
+🏢 2. BASE DE DATOS BACKEND (PostgreSQL)
+
+Escalable, segura, soporte JSONB, índices espaciales y analítica.
+
+🧱 Tabla: users
+
+Usuarios del sistema.
+
+CREATE TABLE users (
+    user_id UUID PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    display_name TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+
+🧱 Tabla: devices
+
+Mantiene vínculo de usuario ↔ dispositivo.
+
+CREATE TABLE devices (
+    device_id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    model TEXT,
+    platform TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(user_id)
+);
+
+🧱 Tabla: models_repo
+
+Base principal del marketplace de modelos.
+
+CREATE TABLE models_repo (
+    model_id TEXT PRIMARY KEY,
+    task_type TEXT NOT NULL,
+    version TEXT NOT NULL,
+    framework TEXT NOT NULL,
+    labels JSONB,
+    signed BOOLEAN NOT NULL DEFAULT false,
+    file_hash TEXT NOT NULL,
+    file_path TEXT NOT NULL,         -- enlace a object storage
+    publisher TEXT NOT NULL,
+    precision_estimate JSONB,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+
+🧱 Tabla: stolen_plates
+
+Registro oficial sincronizado.
+
+CREATE TABLE stolen_plates (
+    plate TEXT PRIMARY KEY,
+    reported_date TIMESTAMPTZ,
+    source TEXT,
+    notes TEXT,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+
+🧱 Tabla: events
+
+Eventos enviados por los móviles (millones de registros).
+
+CREATE TABLE events (
+    event_id UUID PRIMARY KEY,
+    device_id UUID NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL,
+   
+    lat DOUBLE PRECISION,
+    lon DOUBLE PRECISION,
+    accuracy REAL,
+
+    plate_text TEXT,
+    plate_conf REAL,
+
+    make TEXT,
+    make_conf REAL,
+    model TEXT,
+    model_conf REAL,
+    color TEXT,
+    color_conf REAL,
+
+    track_id TEXT,
+    frame_hash TEXT,
+
+    flags JSONB,
+
+    geo geometry(Point, 4326),   -- PostGIS para analítica y heatmaps
+
+    created_at TIMESTAMPTZ NOT NULL,
+    
+    FOREIGN KEY(device_id) REFERENCES devices(device_id)
+);
+
+
+Índices recomendados:
+
+CREATE INDEX idx_events_plate ON events(plate_text);
+CREATE INDEX idx_events_time ON events(timestamp);
+CREATE INDEX idx_events_device ON events(device_id);
+CREATE INDEX idx_events_geo ON events USING GIST(geo);
+
+🧱 Tabla: event_images_cloud
+
+Solo si decidimos almacenar los recortes en backend.
+
+CREATE TABLE event_images_cloud (
+    event_id UUID PRIMARY KEY,
+    url TEXT NOT NULL,
+    mime TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY(event_id) REFERENCES events(event_id)
+);
+
+🧱 Tabla: suspicious_vehicles
+
+Resultado del algoritmo de contra-vigilancia.
+
+CREATE TABLE suspicious_vehicles (
+    plate TEXT NOT NULL,
+    user_id UUID NOT NULL,
+    
+    score REAL NOT NULL,
+    level TEXT NOT NULL,              -- info | warning | critical
+    
+    first_seen TIMESTAMPTZ NOT NULL,
+    last_seen TIMESTAMPTZ NOT NULL,
+    count_seen INTEGER NOT NULL,
+
+    details JSONB,                    -- lista eventos relevantes
+    
+    PRIMARY KEY (plate, user_id),
+    FOREIGN KEY(user_id) REFERENCES users(user_id)
+);
+
+🧱 Tabla: audit_log
+
+Auditoría y seguridad.
+
+CREATE TABLE audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID,
+    action TEXT NOT NULL,
+    target TEXT,
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL
+);
+
+🧠 3. Esquema SQL del Algoritmo de Contra-Vigilancia
+
+No es una tabla, sino un conjunto de parámetros almacenados:
+
+CREATE TABLE surveillance_params (
+    key TEXT PRIMARY KEY,
+    value REAL NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+
+
+Ejemplos de keys:
+
+recurrence_weight
+
+rarity_weight
+
+proximity_weight
+
+persistence_weight
+
+critical_threshold
+
+warning_threshold
+
+Estos parámetros afinan el cálculo del surveillance_score.
+
+📌 4. Flujo SQL resumido (móvil → backend)
+
+events_local recibe detecciones en SQLite.
+
+synced=0 → lote empaquetado → enviado a backend.
+
+Cada evento insertado en PostgreSQL (events).
+
+Si incluye imagen → archivo a storage → URL a event_images_cloud.
+
+Backend ejecuta job en background:
+
+agrega el evento a suspicious_vehicles,
+
+recalcula score,
+
+genera alertas si procede.
+
+
+✅ Diagrama ER completo del sistema (en ASCII o imagen)
+✅ Script SQL completo para PostgreSQL listo para ejecutar
+✅ Script SQL de SQLite optimizado para Flutter
+✅ Definir relaciones para el motor de reglas del “algoritmo de contra-vigilancia”
+✅ Arquitectura del pipeline de inferencia (documento técnico)
+
+
+Entregables (en el orden pedido) — solo texto
+1) Diagrama ER completo del sistema (ASCII)
+
+Usa este diagrama ER simplificado pero completo como referencia lógica. Claves primarias (PK), foráneas (FK) y relaciones principales están indicadas.
+
+                                    +----------------------+
+                                    |       users          |
+                                    |----------------------|
+                                    | user_id (PK)         |
+                                    | email                |
+                                    | password_hash        |
+                                    | display_name         |
+                                    | created_at           |
+                                    +----------+-----------+
+                                               |
+                                               | 1..N
+                                               |
+                                   +-----------v------------+
+                                   |        devices         |
+                                   |------------------------|
+                                   | device_id (PK)         |
+                                   | user_id (FK) -------->-+
+                                   | model                  |
+                                   | platform               |
+                                   | created_at             |
+                                   +-----------+------------+
+                                               |
+             +---------------------------------+--------------------------------+
+             |                                 |                                |
+             |                                 |                                |
++------------v---------+           +-----------v-----------+          +---------v-------------+
+|       events         |           |    event_images_cloud  |          |   suspicious_vehicles |
+|----------------------|           |------------------------|          |-----------------------|
+| event_id (PK)        |           | event_id (PK) (FK)     |          | plate, user_id (PKs) |
+| device_id (FK) -----+--->       | url                    |          | score                 |
+| timestamp            |           | mime                   |          | level                 |
+| lat, lon, accuracy   |           | created_at             |          | first_seen            |
+| plate_text           |           +------------------------+          | last_seen             |
+| plate_conf           |                                              | count_seen            |
+| make, make_conf      |                                              | details (JSONB)       |
+| model, model_conf    |                                              +-----------------------+
+| color, color_conf    |
+| track_id             |                     +------------------+        +------------------+
+| flags (JSONB)        |                     | models_repo      |        | stolen_plates     |
+| frame_hash           |                     |------------------|        |-------------------|
+| geo (geometry)       |                     | model_id (PK)    |        | plate (PK)        |
+| created_at           |                     | task_type        |        | reported_date     |
++----------------------+                     | version          |        | source            |
+                                             | signed (bool)    |        | notes             |
+                                             | file_path        |        +-------------------+
+                                             +--------+---------+
+                                                      |
+                                                      | 1..N
+                                                      |
+                                         +------------v------------+
+                                         |    models_metadata      |
+                                         | (local registry / cache)|
+                                         |-------------------------|
+                                         | model_id (PK)           |
+                                         | task_type               |
+                                         | input_size              |
+                                         | framework               |
+                                         | labels (json)           |
+                                         | file_hash               |
+                                         | signed                  |
+                                         | active (bool)           |
+                                         +-------------------------+
+
++-------------------+      +---------------------+      +------------------+
+| admin_actions     |      | audit_log           |      | surveillance_params|
+|-------------------|      |---------------------|      |-------------------|
+| id (PK)           |      | id (PK)             |      | key (PK)          |
+| action            |      | user_id (FK)        |      | value (REAL)      |
+| target            |      | action              |      | updated_at        |
+| metadata (json)   |      | metadata (json)     |      +-------------------+
+| created_at        |      | created_at          |
++-------------------+      +---------------------+
+
+
+Notas:
+
+events relaciona dispositivos con detecciones; su geo permite consultas espaciales (PostGIS).
+
+models_repo almacena modelos en el backend; models_metadata representa la caché/local registry en el móvil.
+
+suspicious_vehicles está por usuario para permitir que cada usuario tenga su propio set/score.
+
+stolen_plates es el registro oficial (admin-managed).
+
+flags y details usan JSONB para flexibilidad.
+
+2) Script SQL completo para PostgreSQL (listo para ejecutar)
+
+Este script crea las tablas principales, índices y extensiones recomendadas (PostGIS). Adapta OWNER/roles según tu entorno.
+
+NOTA: Ejecutar en PostgreSQL con extensión PostGIS instalada.
+
+-- Postgres SQL script for backend (PostGIS assumed)
+-- Run as a superuser or a user with CREATE EXTENSION privileges
+
+-- 1. Extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- 2. Users table
+CREATE TABLE IF NOT EXISTS users (
+  user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  display_name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 3. Devices
+CREATE TABLE IF NOT EXISTS devices (
+  device_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  device_name TEXT,
+  model TEXT,
+  platform TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 4. Models repository
+CREATE TABLE IF NOT EXISTS models_repo (
+  model_id TEXT PRIMARY KEY,
+  task_type TEXT NOT NULL,
+  version TEXT NOT NULL,
+  framework TEXT NOT NULL,
+  labels JSONB,
+  signed BOOLEAN NOT NULL DEFAULT false,
+  file_hash TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  publisher TEXT NOT NULL,
+  precision_estimate JSONB,
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_models_task ON models_repo(task_type);
+
+-- 5. Stolen plates
+CREATE TABLE IF NOT EXISTS stolen_plates (
+  plate TEXT PRIMARY KEY,
+  reported_date TIMESTAMPTZ,
+  source TEXT,
+  notes TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 6. Events
+CREATE TABLE IF NOT EXISTS events (
+  event_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  device_id UUID NOT NULL REFERENCES devices(device_id) ON DELETE CASCADE,
+  timestamp TIMESTAMPTZ NOT NULL,
+  lat DOUBLE PRECISION,
+  lon DOUBLE PRECISION,
+  accuracy REAL,
+  plate_text TEXT,
+  plate_conf REAL,
+  make TEXT,
+  make_conf REAL,
+  model TEXT,
+  model_conf REAL,
+  color TEXT,
+  color_conf REAL,
+  track_id TEXT,
+  frame_hash TEXT,
+  flags JSONB,
+  geo geometry(Point,4326),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- indices for events
+CREATE INDEX IF NOT EXISTS idx_events_plate ON events(plate_text);
+CREATE INDEX IF NOT EXISTS idx_events_time ON events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_events_device ON events(device_id);
+CREATE INDEX IF NOT EXISTS idx_events_geo ON events USING GIST(geo);
+
+-- 7. Event images (optional)
+CREATE TABLE IF NOT EXISTS event_images_cloud (
+  event_id UUID PRIMARY KEY REFERENCES events(event_id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  mime TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 8. Suspicious vehicles (per user)
+CREATE TABLE IF NOT EXISTS suspicious_vehicles (
+  plate TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  score REAL NOT NULL,
+  level TEXT NOT NULL,
+  first_seen TIMESTAMPTZ NOT NULL,
+  last_seen TIMESTAMPTZ NOT NULL,
+  count_seen INTEGER NOT NULL,
+  details JSONB,
+  PRIMARY KEY (plate, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_suspicious_user ON suspicious_vehicles(user_id);
+
+-- 9. Audit log
+CREATE TABLE IF NOT EXISTS audit_log (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID,
+  action TEXT NOT NULL,
+  target TEXT,
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 10. Admin / pending model validations
+CREATE TABLE IF NOT EXISTS admin_model_pending (
+  id BIGSERIAL PRIMARY KEY,
+  model_id TEXT NOT NULL,
+  uploader_id UUID,
+  status TEXT NOT NULL DEFAULT 'pending',
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 11. Surveillance params
+CREATE TABLE IF NOT EXISTS surveillance_params (
+  key TEXT PRIMARY KEY,
+  value DOUBLE PRECISION NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 12. Devices sync log
+CREATE TABLE IF NOT EXISTS sync_log (
+  id BIGSERIAL PRIMARY KEY,
+  device_id UUID,
+  event_count INTEGER,
+  synced_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status TEXT
+);
+
+-- 13. Example default surveillance params (insert defaults if not present)
+INSERT INTO surveillance_params (key, value)
+SELECT 'recurrence_weight', 1.0 WHERE NOT EXISTS (SELECT 1 FROM surveillance_params WHERE key='recurrence_weight');
+INSERT INTO surveillance_params (key, value)
+SELECT 'proximity_weight', 1.0 WHERE NOT EXISTS (SELECT 1 FROM surveillance_params WHERE key='proximity_weight');
+INSERT INTO surveillance_params (key, value)
+SELECT 'persistence_weight', 1.0 WHERE NOT EXISTS (SELECT 1 FROM surveillance_params WHERE key='persistence_weight');
+INSERT INTO surveillance_params (key, value)
+SELECT 'rarity_weight', 1.0 WHERE NOT EXISTS (SELECT 1 FROM surveillance_params WHERE key='rarity_weight');
+INSERT INTO surveillance_params (key, value)
+SELECT 'warning_threshold', 2.0 WHERE NOT EXISTS (SELECT 1 FROM surveillance_params WHERE key='warning_threshold');
+INSERT INTO surveillance_params (key, value)
+SELECT 'critical_threshold', 4.0 WHERE NOT EXISTS (SELECT 1 FROM surveillance_params WHERE key='critical_threshold');
+
+-- End of Postgres script
+
+3) Script SQL de SQLite optimizado para Flutter (SQLCipher recomendado)
+
+Notas: usa PRAGMA cipher/key según la integración (SQLCipher). Este SQL está pensado para ejecutarse con la biblioteca SQLite integrada (ej. sqflite con SQLCipher).
+
+-- SQLite schema for local app database (intended to be encrypted with SQLCipher)
+-- Run pragma key('your-encryption-key') before opening DB in production.
+
+-- 1. app_settings
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- 2. devices_info
+CREATE TABLE IF NOT EXISTS devices_info (
+  device_id TEXT PRIMARY KEY,
+  created_at INTEGER NOT NULL
+);
+
+-- 3. models_local
+CREATE TABLE IF NOT EXISTS models_local (
+  model_id TEXT PRIMARY KEY,
+  task_type TEXT NOT NULL,
+  version TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_hash TEXT NOT NULL,
+  signed INTEGER NOT NULL DEFAULT 0,
+  active INTEGER NOT NULL DEFAULT 0,
+  downloaded_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_models_local_task ON models_local(task_type);
+
+-- 4. stolen_plates_local
+CREATE TABLE IF NOT EXISTS stolen_plates_local (
+  plate_text TEXT PRIMARY KEY,
+  source TEXT,
+  reported_date INTEGER,
+  updated_at INTEGER NOT NULL
+);
+
+-- 5. events_local
+CREATE TABLE IF NOT EXISTS events_local (
+  local_id TEXT PRIMARY KEY,
+  timestamp INTEGER NOT NULL,
+  lat REAL,
+  lon REAL,
+  accuracy REAL,
+  vehicle_conf REAL,
+  plate_text TEXT,
+  plate_conf REAL,
+  make TEXT,
+  make_conf REAL,
+  model TEXT,
+  model_conf REAL,
+  color TEXT,
+  color_conf REAL,
+  track_id TEXT,
+  vehicle_model_id TEXT,
+  plate_model_id TEXT,
+  ocr_model_id TEXT,
+  frame_hash TEXT,
+  flag_stolen_match INTEGER DEFAULT 0,
+  suspicious_score REAL DEFAULT 0.0,
+  synced INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_local_plate ON events_local(plate_text);
+CREATE INDEX IF NOT EXISTS idx_events_local_timestamp ON events_local(timestamp);
+CREATE INDEX IF NOT EXISTS idx_events_local_synced ON events_local(synced);
+CREATE INDEX IF NOT EXISTS idx_events_local_track ON events_local(track_id);
+
+-- 6. event_images
+CREATE TABLE IF NOT EXISTS event_images (
+  local_id TEXT PRIMARY KEY,
+  image_path TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY(local_id) REFERENCES events_local(local_id) ON DELETE CASCADE
+);
+
+-- 7. sync_log
+CREATE TABLE IF NOT EXISTS sync_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_count INTEGER NOT NULL,
+  synced_at INTEGER NOT NULL,
+  status TEXT NOT NULL
+);
+
+-- 8. surveillance params (local tuning copy)
+CREATE TABLE IF NOT EXISTS surveillance_params (
+  key TEXT PRIMARY KEY,
+  value REAL NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Insert sensible defaults if not present (do this from app code on DB init)
+-- e.g. INSERT OR IGNORE INTO surveillance_params(key,value,updated_at) VALUES('recurrence_weight',1.0,strftime('%s','now'));
+
+-- 9. metadata: versioning table for migrations
+CREATE TABLE IF NOT EXISTS db_metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+-- End of SQLite script
+
+
+Recomendaciones prácticas para Flutter:
+
+Usar sqflite_sqlcipher o sqlite3 con SQLCipher para cifrado.
+
+Aplicar migrations controladas (version number in db_metadata).
+
+Indexar campos de búsqueda frecuentes (plate_text, timestamp, synced).
+
+4) Definir relaciones para el motor de reglas del algoritmo de contra-vigilancia
+
+A continuación se detallan tablas relevantes (ya incluidas en los esquemas) y las relaciones lógicas / cálculos que componen el motor. Incluye fórmulas, ejemplos y consultas SQL de ejemplo para cálculo del surveillance_score.
+
+4.1 Tablas involucradas
+
+events (Postgres) / events_local (mobile): registros de detección con geo, timestamp, plate_text, track_id, confidences.
+
+suspicious_vehicles: tabla para almacenar resultados por usuario.
+
+surveillance_params: parámetros con pesos y umbrales.
+
+stolen_plates: registro de placas robadas (influye directamente).
+
+devices, users.
+
+4.2 Relaciones lógicas (por vehículo/usuario)
+
+Un plate puede tener N events.
+
+Un track_id agrupa eventos temporales (mismo dispositivo).
+
+suspicious_vehicles ← agregación y resumen por plate,user_id.
+
+4.3 Componentes del score (valores en [0,∞), pesos desde surveillance_params)
+
+Definimos sub-scores normalizados (0..1) y luego ponderación:
+
+Repetición temporal (S_recurrence)
+
+Mide cuántas veces se vio la misma placa en ventana W (ej. 1 hora).
+
+Normalización sugerida:
+
+S_recurrence = min(1.0, log(1 + count_seen_in_W) / log(1 + K))
+
+
+Donde K es un factor de saturación (p.ej. K=10).
+
+Proximidad (S_proximity)
+
+Mide proximidad media del vehículo al usuario durante eventos (si se cuenta con distancia estimada).
+
+Si solo lat/lon, calcular distancia media d_mean y normalizar:
+
+S_proximity = clamp(1 - (d_mean / D_MAX), 0, 1)
+
+
+Donde D_MAX es distancia considerada segura (ej. 200 m).
+
+Persistencia (S_persistence)
+
+Tiempo total observado t_total en ventana W:
+
+S_persistence = min(1.0, t_total / T_SAT)
+
+
+Donde T_SAT es la duración en segundos que consideramos saturación (ej. 600 s = 10 min).
+
+Rarity / baseline (S_rarity)
+
+Si tenemos una tabla de baseline de la zona (e.g., frecuencias históricas), la rareza se calcula:
+
+freq = baseline_freq(plate)   -- 0..inf
+S_rarity = 1 - sigmoid(freq, alpha, beta)   -- mayor si freq baja
+
+
+Practically, if freq==0 then S_rarity ~1.
+
+Robbery match (S_stolen)
+
+Si plate ∈ stolen_plates: S_stolen = 1 else 0. (Esto agrega un gran impulso al score.)
+
+Confidence factor (C_factor)
+
+Basado en model signature and confidences:
+
+C_factor = weighted_average(plate_conf, detector_conf, ocr_model_signed ? 1.0 : 0.7)
+
+
+Si model.signed == false o confidences bajas, multiplicar sub-scores por <1 para reducir impacto.
+
+4.4 Fórmula compuesta del surveillance_score
+
+Ponderación por parámetros de surveillance_params:
+
+score_raw = w_rec * S_recurrence
+          + w_prox * S_proximity
+          + w_pers * S_persistence
+          + w_rar * S_rarity
+          + w_stolen * S_stolen
+
+score = score_raw * C_factor
+
+
+Donde w_* vienen de surveillance_params. Ejemplo de pesos por defecto: all 1.0 y w_stolen = 3.0 para dar prioridad a robado.
+
+4.5 Decaimiento temporal del score
+
+Implementar decaimiento exponencial para que la evidencia antigua pierda peso:
+
+score_t = score_prev * exp(-lambda * delta_t) + new_evidence_score
+
+
+lambda configurado en surveillance_params (p.ej. 0.1 por hora).
+
+4.6 Umbrales y niveles
+
+warning_threshold (ej. 2.0)
+
+critical_threshold (ej. 4.0)
+
+Acciones:
+
+score < warning → Monitor only
+
+warning ≤ score < critical → notify user (info/warning)
+
+score ≥ critical → notify + sound + auto-track
+
+4.7 Ejemplo de cálculo (pseudocódigo SQL / steps)
+
+Obtener eventos relevantes (últimas N horas):
+
+SELECT plate_text, COUNT(*) AS cnt,
+       AVG( ST_DistanceSphere(geo, ST_MakePoint(:user_lon, :user_lat)) ) AS avg_dist,
+       SUM(EXTRACT(EPOCH FROM (lead(timestamp) OVER (PARTITION BY track_id ORDER BY timestamp)
+                                - timestamp))) AS total_seconds
+FROM events
+WHERE
+  user_id = :user_id AND
+  timestamp >= now() - INTERVAL '1 hour'
+GROUP BY plate_text;
+
+
+Calcular sub-scores en aplicación/backend y combinar con parámetros recuperados:
+
+SELECT key, value FROM surveillance_params
+WHERE key IN ('recurrence_weight','proximity_weight','persistence_weight', 'rarity_weight','warning_threshold','critical_threshold');
+
+
+Aplicar las fórmulas descritas en la capa de negocio (backend job) y guardar/actualizar suspicious_vehicles.
+
+4.8 Storage & history
+
+suspicious_vehicles.details guarda eventos clave (IDs) que justifican el score.
+
+Mantener histórico de cambios (audit_log) por trazabilidad.
+
+4.9 Reglas de validación / mitigación de falsos positivos
+
+Requerir al menos min_count (ej. 2) para considerar score > 0.
+
+Ignorar eventos con plate_conf < MIN_PLATE_CONF o model.signed=false a menos que S_stolen=1.
+
+Aplicar voting sobre OCR: si plate aparece inconsistently (variaciones), usar consenso (majority of reads) y un edit_distance threshold.
+
+5) Arquitectura del pipeline de inferencia (documento técnico)
+
+A continuación la arquitectura detallada del pipeline de inferencia on-device —módulos, interfaces, formatos, flujos, optimizaciones, estrategias de carga y fallback— pensada para Flutter (Android/iOS) con modelos YOLO y OCR en TFLite/ONNX.
+
+5.1 Objetivo del pipeline
+
+Procesar video en tiempo real (o casi real) desde la cámara del móvil para:
+
+detectar vehículos y placas,
+
+extraer crops,
+
+ejecutar OCR,
+
+asociar con tracker,
+
+guardar evento en DB y generar alertas.
+
+Todo con robustez ante modelos ausentes/incompatibles y con uso eficiente de CPU/GPU y batería.
+
+5.2 Módulos (interfaces y responsabilidades)
+
+CameraManager
+
+Responsabilidad: capturar frames desde la cámara y exponerlos al FrameSampler.
+
+Configuraciones: resolución base, fps cámara, ROI (región de interés).
+
+Output: Frame (RGBA/YCbCr) + timestamp + camera_metadata (device orientation, focal length).
+
+FrameSampler
+
+Responsabilidad: decide qué frames pasar al pipeline según política (e.g., 1 fps normal, 2–4 fps en tracking).
+
+Políticas: Normal, Tracking, BatterySaver.
+
+Output: SampledFrame.
+
+Preprocessor
+
+Tareas: rotación, corrección de orientación, resize (mantener aspect ratio), normalization (float32 scaling), optional histogram equalization.
+
+Produce: tensors con tamaño requerido por el modelo (ej. 640×640).
+
+Manejo de ROI: si user define ROI, crop antes del resize.
+
+ModelRegistryManager (MRM)
+
+Lee models_local/SIM.
+
+Selecciona el modelo por task_type.
+
+Validaciones: framework compat, input_size.
+
+API: getModelForTask(task_type) retorna ModelDescriptor (path, input_size, signed, thresholds).
+
+Responsible for model download/verify/activate.
+
+InferenceRunner
+
+Abstracción sobre runtime (TFLite, NNAPI, CoreML, metal delegate, Vulkan).
+
+Funciones:
+
+runDetection(frame_tensor) → detections (boxes, labels, scores)
+
+runOCR(crop_tensor) → text + confidence
+
+Optimización: use delegates, quantized models, native threads.
+
+Batch support: if multiple crops, run batch inference.
+
+PostProcessor
+
+NMS (Non-Max Suppression) if model doesn't provide.
+
+Mapping labels to semantic outputs.
+
+Confidence thresholding.
+
+Normalization of box coordinates from resized tensor to original frame.
+
+CropManager
+
+Extracts high-resolution crops from original frame (not the resized one) for OCR and attribute models.
+
+Tracker Engine
+
+Implementation: ByteTrack/DeepSort like.
+
+Inputs: detections (boxes + embeddings if available).
+
+Outputs: persistent track_id for a moving object.
+
+Association policy: IoU + motion + appearance embeddings.
+
+Integrates plate_text when available to anchor identity.
+
+Attribute Pipelines
+
+MakeModelDetector (optional): predicts make/model labels for the vehicle crop.
+
+ColorDetector (optional): predicts color labels.
+
+PlateDetector (if different from vehicle detector): finds plate box.
+
+OCRRunner: receives plate crop(s) and outputs OCR text + confidence.
+
+Voting mechanism over multiple frames within same track_id.
+
+EventAssembler
+
+Receives associated data (track_id, plate_text, makes, confidences, position).
+
+Computes suspicious_score incrementally via local rules.
+
+Stores event in events_local.
+
+AlertEngine
+
+Monitors incoming events; if stolen match or surveillance thresholds hit, issues UI/push alert and may toggle TrackingPolicy to Tracking.
+
+SyncManager
+
+Manages upload policies and batching to /v1/events/batch.
+
+Respects user settings (Wi-Fi only, manual, anonymize).
+
+Maintains synced flags.
+
+ModelVerifier
+
+On download, verifies file hash and digital signature.
+
+Rejects model on mismatch.
+
+Telemetry & Metrics
+
+Tracks inference latency, FPS, memory usage, failed inferences.
+
+Optional opt-in upload of aggregated metrics.
+
+5.3 Data flow (step-by-step)
+
+CameraManager → FrameSampler decides to process frame F at t.
+
+Preprocessor resizes/normalizes → tensor T.
+
+MRM provides vehicle_detector model descriptor.
+
+InferenceRunner.runDetection(T) → list of detections {bbox, label, score}.
+
+PostProcessor applies NMS + thresholds → valid boxes.
+
+For each vehicle box:
+
+CropManager extracts high-res crop C_vehicle (from original frame).
+
+If make_model model present → Preprocess crop → InferenceRunner.runMakeModel → record results.
+
+If plate_detector model present on the frame or single-stage model returns plate → crop plate.
+
+OCR: crop plate to appropriate input_size → InferenceRunner.runOCR → get plate_text + plate_conf.
+
+TrackerEngine updates/creates track using vehicle detections; returns track_id.
+
+EventAssembler associates plate_text → track_id (if multiple plates across frames, perform voting).
+
+Persist to events_local with metadata including model_ids used.
+
+AlertEngine checks stolen list / surveillance scoring, triggers actions if needed.
+
+SyncManager batches unsynced events per policy and uploads.
+
+5.4 Model formats & runtimes
+
+Preferred local formats:
+
+Android: TFLite (with NNAPI / GPU delegate), or ONNX with ORT Mobile + NNAPI.
+
+iOS: CoreML converted models, or TFLite + Metal delegate.
+
+Model packaging:
+
+ZIP: {model.tflite, model.json (SIM), readme.md, signature.sig}
+
+model.json must follow SIM.
+
+Delegates:
+
+Use GPU delegates when available and stable on device.
+
+Fall back to CPU (quantized models for speed).
+
+5.5 Performance & resource management
+
+Target devices: gama media (ex: 4–8 CPU cores, 2–4 GB RAM). Optimize:
+
+Default sampling 1 fps → low CPU.
+
+Tracking uses cheaper frame deltas (use motion estimation) to avoid full inference on every frame.
+
+Use quantized models (INT8/FP16) for speed/size.
+
+Memory:
+
+Keep only active models in memory; unload models not active.
+
+Cap number of concurrent inference threads (1-2) to avoid contention.
+
+Battery:
+
+Provide user profiles: Battery Saver, Balanced, Performance.
+
+In Battery Saver: 0.5 fps, lower resolution, no GPU.
+
+Concurrency:
+
+Camera → Producer thread.
+
+InferenceQueue → single consumer / bounded queue.
+
+Tracker/DB writes → background worker.
+
+Timeouts & error handling:
+
+If inference fails, retry up to N times (configurable), then log and continue.
+
+If model is incompatible, MRM disables it and pipeline continues with placeholders (nulls).
+
+5.6 Robustness & fallback policies
+
+Model absence: pipeline continues; record nulls for missing attributes and mark model_used_* null.
+
+Low OCR confidence: store plate as null; keep track_id for future reads. Use voting across frames to increase confidence.
+
+Unsigned model: allow if user explicitly enables "allow unverified models" (advanced), but reduce weight of evidence (C_factor multiplier e.g. 0.6).
+
+Batching crops for OCR: When track has multiple plate crops, send a batch to OCR runner for aggregated inference (reduces overhead).
+
+5.7 Security checks in pipeline
+
+Model signature/hash verification before activation (ModelVerifier).
+
+Sandboxing: models run in controlled inference environment; do not execute arbitrary code.
+
+Limits on model size: reject models > threshold unless user accepts.
+
+Logging: store model_id used per event for audit.
+
+5.8 Telemetry & metrics (what to measure)
+
+Inference latency mean & p95 per model.
+
+FPS achieved by pipeline.
+
+Memory usage per model load.
+
+OCR accuracy estimates (compare to user-corrected labels if opt-in).
+
+Alerts rate & false alarm feedback (user reports).
+
+5.9 Deployment & updates of models
+
+Backend publishes models with SIM and signature.
+
+App checks for updates periodically or on user request.
+
+On new model activation, MRM runs health checks: small validation batch (local or test images) before set active.
+
+5.10 Example component API (interfaces, high-level)
+
+CameraManager.start() / .stop()
+
+FrameSampler.setPolicy(policy)
+
+MRM.getModel(task_type) -> ModelDescriptor
+
+InferenceRunner.runDetection(tensor) -> detections[]
+
+TrackerEngine.update(detections) -> tracks[]
+
+EventAssembler.saveEvent(eventPayload)
+
+AlertEngine.onEvent(eventPayload) -> may trigger UI
+
+✅ Cierre y recomendaciones rápidas
+
+Los scripts SQL están listos para usar como base. Adapta roles, usuarios y claves a tu infraestructura.
+
+El pipeline propuesto prioriza robustez (fallback si faltan modelos), eficiencia (sampling dinámico) y seguridad (verificación de modelos).
+
+El motor de contra-vigilancia se implementa mejor como job en backend que consume eventos y actualiza suspicious_vehicles, pero versiones simples pueden correr localmente para notificaciones instantáneas (usar events_local + surveillance_params).
+
+Antes de pruebas en campo, prepara un dataset representativo para validar thresholds y surveillance_params.
+
+Si quieres ahora, puedo:
+
+generar el script SQL de PostgreSQL adaptado a tu naming/roles exactos (por ejemplo esquema prod y owners),
+
+o convertir el pipeline en un diagrama secuencial ASCII más detallado paso a paso por módulo,
+
+o preparar migraciones SQL ordenadas para el SQLite (versioned).
+
+Dime cuál de esos (solo texto) quieres a continuación y lo produzco.
+
+
+toma solo lo que sea factible, optimiza loqu sea neceario y dame un plan para llevar acabo tod el proyecto, se puede hacer lo mas importante, 
+
+
+----
+
+ChatGPT dijo:
+
+Perfecto. Vamos a integrar formalmente cómo debe funcionar el mecanismo para cargar modelos YOLO seleccionados por el usuario desde la app, manteniendo seguridad, consistencia técnica y evitando errores por modelos incompatibles.
+
+A continuación te entrego el módulo completo para añadirlo a la “Especificación Técnica v1.0”.
+
+🔧 Mecanismo para cargar modelos YOLO seleccionados por el usuario desde la app
+
+Este apartado define cómo la aplicación móvil permitirá al usuario cargar modelos YOLO personalizados, ya sea:
+
+Desde el backend oficial (repositorio seguro — recomendado)
+
+Desde almacenamiento local del usuario (archivo .zip, .tflite, .onnx, etc.)
+
+Desde URL externa (solo si el usuario habilita “permitir modelos no verificados”)
+
+La meta es evitar modelos inservibles o peligrosos, garantizar inferencias correctas y mantener compatibilidad entre modelos, entradas y salidas.
+
+1. Formato estándar de modelo (SIM) — Security & Integrity Model
+
+Cada modelo debe estar empacado en un paquete ZIP con la siguiente estructura:
+
+/model/
+    model.tflite ó model.onnx
+    model.json      ← metadatos SIM
+    labels.txt      ← opcional (si tasks: make/model/color)
+    signature.sig   ← firma digital opcional
+    readme.md       ← opcional
+
+El archivo model.json (SIM) contiene:
+{
+    "model_id": "yolo-plate-detector-v1",
+    "task_type": "plate_detector",
+    "framework": "tflite",
+    "input_size": [640, 640],
+    "labels": ["vehicle", "plate"],
+    "version": "1.0.0",
+    "publisher": "usuario/local/backend",
+    "file_hash": "sha256:xxxxx",
+    "signed": true,
+    "meta": {
+        "recommended_conf_threshold": 0.35,
+        "max_detections": 200,
+        "nms": "built-in",
+        "postprocess": "auto"
+    }
+}
+
+
+Este JSON es indispensable para evitar:
+
+confusión entre modelos incompatibles
+
+tamaños incorrectos de entrada
+
+mapas de etiquetas erróneos
+
+modelos corrompidos
+
+versiones equivocadas
+
+2. Flujo de carga de modelos (User-Selectable Model Loading)
+Diferentes métodos permitidos
+A) Selección desde la app (backend oficial) — modo seguro
+
+El usuario elige:
+
+detectores de autos
+
+detectores de placas
+
+OCR
+
+modelos de color
+
+modelos de marca/modelo
+
+La app descarga el zip → lo verifica → lo activa.
+
+B) Cargar desde archivo local
+
+El usuario usa:
+
+Abrir archivo
+
+Seleccionar modelo YOLO
+
+Importar ZIP desde almacenamiento interno
+
+C) Cargar desde URL
+
+Solo permitido si el usuario habilita:
+
+“Permitir modelos no verificados”
+
+Para investigadores, testers o desarrolladores.
+
+3. Proceso completo de verificación y activación de modelos
+
+La app sigue una pipeline estricta:
+
+(1) Usuario selecciona archivo/URL/backend
+        ↓
+(2) App valida estructura ZIP
+        ↓
+(3) Extrae y verifica model.json (SIM)
+        ↓
+(4) Calcula hash SHA-256 del archivo modelo
+        ↓
+(5) Compara con el hash del SIM
+        ↓
+(6) Si tiene signature.sig → verificar firma
+        ↓
+(7) Validar compatibilidad con runtimes del dispositivo
+        ↓
+(8) Registrar en DB (models_local) como "downloaded"
+        ↓
+(9) Activar (active = 1) el modelo seleccionado por el usuario
+
+
+Si algo falla:
+
+se rechaza
+
+se muestra error claro
+
+el modelo no se activa
+
+4. Validaciones estrictas antes de permitir activación
+✔ Validar compatibilidad del framework
+
+TFLite → dispositivos Android/iOS compatibles
+
+ONNX → usar ONNX Runtime Mobile
+
+CoreML → solo iOS
+
+Si no es compatible → rechazar.
+
+✔ Validar input size
+
+Ej. YOLOv8 suele usar 640×640.
+Si el modelo dice 512×512, la app debe adaptar el preprocesamiento.
+Si es un tamaño no soportado → rechazar.
+
+✔ Validar que task_type esté permitido
+
+Lista de task types aceptados:
+
+vehicle_detector
+
+plate_detector
+
+ocr
+
+make_model_classifier
+
+color_classifier
+
+Si viene un tipo fuera de esta lista → rechazar.
+
+✔ Validar que labels coinciden con la tarea
+
+Ej. un detector de placas debe tener etiquetas tipo ["license_plate"].
+
+✔ Validar tamaño máximo
+
+Evitar modelos gigantes:
+
+límite recomendado: ≤ 40 MB
+
+Si excede → pedir confirmación al usuario.
+
+5. Gestión de múltiples modelos por tarea
+
+Cada categoría puede tener N modelos cargados pero solo uno activo.
+
+Tabla models_local:
+
+Campo	Uso
+model_id	Identificador único
+task_type	Tipo del modelo
+active	0/1 indica el modelo activo
+file_path	Ruta local del modelo
+signed	Indica si tiene firma
+file_hash	Verificación
+labels	Para clasificaciones
+version	Control de versiones
+Reglas:
+
+Solo un modelo activo por task_type.
+
+Si el usuario activa un nuevo modelo, el anterior pasa a active = 0.
+
+Nunca borrar automáticamente modelos (el usuario decide).
+
+6. Interfaz completa para el usuario (UX/UI)
+
+La sección “Modelos de IA” debe incluir:
+
+Pantallas:
+
+Modelos de detección
+
+Modelos de OCR
+
+Modelos de marca/modelo
+
+Modelos de color
+
+Modelos avanzados
+
+Opciones:
+
+Agregar modelo
+
+Desde archivo
+
+Desde URL
+
+Desde biblioteca oficial
+
+Ver detalles
+
+versión
+
+publisher
+
+firma digital
+
+fecha de carga
+
+tamaño
+
+Activar modelo
+
+Eliminar modelo
+
+Restablecer a modelo por defecto
+
+Modo avanzado:
+
+Permitir modelos sin firma
+
+Permitir modelos de gran tamaño
+
+Mostrar logs del pipeline
+
+7. Integración con el Pipeline de Inferencia
+
+Cuando el pipeline necesita un modelo:
+
+vehicleDetector = MRM.getModelForTask("vehicle_detector")
+
+
+MRM = Model Registry Manager
+
+El MRM:
+
+busca en models_local
+
+valida que esté activo y disponible
+
+carga en memoria
+
+activa el runtime correspondiente (TFLite / ONNX / CoreML)
+
+reporta errores si el modelo no es compatible
+
+Nunca se invoca un modelo que el usuario no haya activado.
+
+8. Manejo de errores comunes
+Error	Acción de la App
+ZIP corrupto	mensaje claro, descartar archivo
+model.json ausente	descartar
+hash incorrecto	descartar y advertir sobre posible alteración
+modelo incompatible	bloquear y explicar motivo
+modelo demasiado grande	pedir confirmación
+labels inválidos	rechazar
+9. Recomendaciones de seguridad
+
+Modelos sin firma → ejecutar con capacidad reducida (menor puntuación en algoritmo).
+
+No permitir ejecución directa de código.
+
+Limitar acceso a carpetas fuera del sandbox.
+
+Validar siempre integridad del ZIP.
+
+Mantener audit log de modelos instalados.
+
+10. Entrada para la Especificación Técnica v1.0
+
+Si quieres, integro todo este módulo en el documento global “Especificación Técnica v1.0” como:
+
+Sección 6. Gestión y carga de modelos YOLO (SIM + Model Registry Manager)
+
+
+
+
+📄 ESPECIFICACIÓN TÉCNICA — VERSIÓN 1.0
+
+Sistema de Detección Inteligente Multi-Modelo con Contra-Vigilancia Automática
+(Aplicación Móvil + Backend + IA + BD + Model Registry)
+
+0. Declaración de Modelo y Prevención de Errores
+
+Para evitar errores en la arquitectura, implementaciones incorrectas y confusiones entre modelos, la aplicación debe hacer uso de:
+
+Modelo de Arquitectura Estándar:
+
+Frontend: Flutter
+
+Backend: Node.js + PostgreSQL
+
+Base local móvil: SQLite
+
+IA: Modelos YOLO en formatos TFLite, ONNX o CoreML
+
+Motor de reglas: Pipeline de inferencia con módulo de contra-vigilancia
+
+Formato estándar de modelos (SIM – Security & Integrity Model)
+
+Model Registry Manager (MRM) para activar y administrar modelos sin riesgo
+
+Control de versiones para prevenir incompatibilidades entre modelos y tareas
+
+Validación estricta del paquete de modelo antes de habilitarlo
+
+1. DIAGRAMA ER COMPLETO DEL SISTEMA (ASCII)
++-------------------+       +------------------------+
+| users             |       | sessions               |
+|-------------------|       |------------------------|
+| user_id PK        |<-----| session_id PK          |
+| email             |       | user_id FK             |
+| role              |       | token                  |
+| created_at        |       | expires_at             |
++-------------------+       +------------------------+
+
++------------------------------------------------------------+
+| models_local                                               |
+|------------------------------------------------------------|
+| model_id PK                                               |
+| task_type                                                 |
+| version                                                   |
+| framework (tflite/onnx/coreml)                            |
+| file_path                                                 |
+| labels JSON                                               |
+| file_hash                                                 |
+| signed BOOLEAN                                            |
+| active BOOLEAN                                             |
+| source (“backend”, “local”, “url”)                        |
+| created_at                                                |
++------------------------------------------------------------+
+
++----------------------+        +--------------------------+
+| detections           |        | ocr_results              |
+|----------------------|        |--------------------------|
+| detection_id PK      |        | ocr_id PK                |
+| image_id FK          |        | detection_id FK          |
+| model_id FK          |        | text                     |
+| label                |        | confidence               |
+| confidence           |        | created_at               |
+| bbox JSON            |        +--------------------------+
+| created_at           |
++----------------------+
+
++---------------------------+
+| images                    |
+|---------------------------|
+| image_id PK               |
+| path                      |
+| width                     |
+| height                    |
+| created_at                |
++---------------------------+
+
++---------------------------------+
+| rule_engine_events              |
+|---------------------------------|
+| event_id PK                     |
+| detection_id FK                 |
+| rule_name                       |
+| severity                        |
+| triggered BOOLEAN               |
+| created_at                      |
++---------------------------------+
+
+2. SCRIPT COMPLETO PARA POSTGRESQL (LISTO PARA EJECUTAR)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE users (
+    user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT UNIQUE NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE sessions (
+    session_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(user_id),
+    token TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE models_local (
+    model_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_type TEXT NOT NULL,
+    version TEXT NOT NULL,
+    framework TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    labels JSONB,
+    file_hash TEXT NOT NULL,
+    signed BOOLEAN DEFAULT false,
+    active BOOLEAN DEFAULT false,
+    source TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE images (
+    image_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    path TEXT NOT NULL,
+    width INT,
+    height INT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE detections (
+    detection_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    image_id UUID REFERENCES images(image_id),
+    model_id UUID REFERENCES models_local(model_id),
+    label TEXT NOT NULL,
+    confidence NUMERIC NOT NULL,
+    bbox JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE ocr_results (
+    ocr_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    detection_id UUID REFERENCES detections(detection_id),
+    text TEXT NOT NULL,
+    confidence NUMERIC,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE rule_engine_events (
+    event_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    detection_id UUID REFERENCES detections(detection_id),
+    rule_name TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    triggered BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+3. SCRIPT SQL PARA SQLITE OPTIMIZADO PARA FLUTTER
+CREATE TABLE models_local (
+    model_id TEXT PRIMARY KEY,
+    task_type TEXT,
+    version TEXT,
+    framework TEXT,
+    file_path TEXT,
+    labels TEXT,
+    file_hash TEXT,
+    signed INTEGER,
+    active INTEGER,
+    source TEXT,
+    created_at TEXT
+);
+
+CREATE TABLE images (
+    image_id TEXT PRIMARY KEY,
+    path TEXT,
+    width INTEGER,
+    height INTEGER,
+    created_at TEXT
+);
+
+CREATE TABLE detections (
+    detection_id TEXT PRIMARY KEY,
+    image_id TEXT,
+    model_id TEXT,
+    label TEXT,
+    confidence REAL,
+    bbox TEXT,
+    created_at TEXT
+);
+
+CREATE TABLE ocr_results (
+    ocr_id TEXT PRIMARY KEY,
+    detection_id TEXT,
+    text TEXT,
+    confidence REAL,
+    created_at TEXT
+);
+
+CREATE TABLE rule_engine_events (
+    event_id TEXT PRIMARY KEY,
+    detection_id TEXT,
+    rule_name TEXT,
+    severity TEXT,
+    triggered INTEGER,
+    created_at TEXT
+);
+
+4. RELACIONES Y REGLAS PARA EL “ALGORITMO DE CONTRA-VIGILANCIA”
+
+El sistema implementa un motor de reglas basado en heurísticas e inferencia ligera para identificar patrones de vigilancia sospechosa.
+
+4.1 Conceptos Clave
+
+Detección primaria: vehículos, placas, rostros.
+
+Detección secundaria: OCR de placas u objetos.
+
+Eventos derivados: patrones de seguimiento, recorridos repetitivos, objetos inusuales.
+
+Reglas contextuales: condiciones ambientales, tiempo, ubicación.
+
+4.2 Reglas (ejemplos)
+Regla 1: Repetición de la misma placa en menos de 2 horas → “Seguimiento sospechoso”
+Regla 2: Vehículo estacionado 3+ veces consecutivas en el mismo punto → “Posible vigilancia”
+Regla 3: Objeto no identificado + persona en posición fija → “Monitoreo pasivo”
+Regla 4: Movimiento circular repetido → “Patrón perimetral”
+Regla 5: Discrepancias en OCR y Detector → “Manipulación visual”
+
+4.3 Lógica del motor
+
+Recibe detecciones
+
+Enlaza con resultados OCR
+
+Consulta historial en BD
+
+Evalúa reglas basadas en:
+
+frecuencia
+
+repetición
+
+variación espacial
+
+correlación hora-lugar
+
+Genera evento en rule_engine_events
+
+Notifica al usuario si la severidad ≥ “medium”
+
+5. ARQUITECTURA DEL PIPELINE DE INFERENCIA (DOCUMENTO TÉCNICO)
+          [INPUT CAMERA]
+                 ↓
+            Preprocesamiento
+                 ↓
+     ┌──────── ML Model Loader ────────┐
+     │ Model Registry Manager (MRM)    │
+     │ • Valida                       │
+     │ • Verifica hash                │
+     │ • Activa modelos por tarea     │
+     └─────────────────────────────────┘
+                 ↓
+        Inferencia (YOLO)
+                 ↓
+      Postprocesamiento (NMS)
+                 ↓
+    OCR Engine (si la tarea lo requiere)
+                 ↓
+      Motor de Reglas (Contra-Vigilancia)
+                 ↓
+            Eventos y Alertas
+                 ↓
+                BD
+
+5.1 Módulos
+
+MRM: garantiza que solo se use un modelo seguro y validado.
+
+Preprocesamiento: resize, normalización.
+
+Postprocesamiento: NMS, decodificación de etiquetas.
+
+OCR: Tesseract OCR móvil o modelo ONNX.
+
+Context Evaluator: correlaciona detecciones.
+
+6. GESTIÓN Y CARGA DE MODELOS YOLO SELECCIONADOS POR EL USUARIO
+6.1 Formato SIM (Security & Integrity Model)
+
+Todo modelo se distribuye como ZIP:
+
+/model/
+    model.onnx / model.tflite
+    model.json   ← metadatos obligatorios
+    labels.txt
+    signature.sig (opcional)
+
+
+Ejemplo de model.json:
+
+{
+    "model_id": "yolo-plate-v1",
+    "task_type": "plate_detector",
+    "framework": "tflite",
+    "input_size": [640,640],
+    "labels": ["plate"],
+    "version": "1.0.0",
+    "publisher": "backend",
+    "file_hash": "sha256:xxxx",
+    "signed": true
+}
+
+6.2 Métodos de carga permitido
+
+Desde el backend oficial (seguro)
+
+Desde archivo local (ZIP)
+
+Desde URL externa (modo avanzado)
+
+6.3 Pipeline de validación
+Usuario selecciona modelo
+        ↓
+Validar estructura ZIP
+        ↓
+Leer model.json
+        ↓
+Calcular SHA-256 y comparar
+        ↓
+Verificar firma (si existe)
+        ↓
+Validar framework y compatibilidad
+        ↓
+Registrar modelo en BD
+        ↓
+Activar modelo seleccionado
+
+6.4 Reglas de activación
+
+Solo un modelo activo por tarea (vehicle, plate, color, OCR).
+
+El usuario puede activar/desactivar modelos.
+
+El sistema nunca usa un modelo no activado.
+
+6.5 Validaciones estrictas
+
+Tamaño máximo sugerido: ≤ 40 MB
+
+Solo tareas permitidas:
+
+vehicle_detector
+
+plate_detector
+
+ocr
+
+make_model_classifier
+
+color_classifier
+
+input_size válido
+
+labels consistentes
+
+framework compatible con el dispositivo
+
+FIN DEL DOCUMENTO
