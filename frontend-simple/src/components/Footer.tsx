@@ -49,7 +49,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  href="/productos" 
+                  href="/busqueda" 
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Todos los Productos
@@ -57,7 +57,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/categorias" 
+                  href="/busqueda" 
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Categorías
@@ -65,7 +65,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/ofertas" 
+                  href="/busqueda" 
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Ofertas Especiales
@@ -73,7 +73,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/sobre-nosotros" 
+                  href="/gamification" 
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Sobre Nosotros
@@ -81,7 +81,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/blog" 
+                  href="/" 
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Blog
@@ -112,7 +112,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/envios" 
+                  href="/" 
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Envíos
@@ -120,7 +120,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/seguimiento" 
+                  href="/track" 
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Seguir Pedido
@@ -128,7 +128,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/contacto" 
+                  href="/track" 
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Contacto

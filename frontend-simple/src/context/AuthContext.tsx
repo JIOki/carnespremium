@@ -46,8 +46,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const loadUser = () => {
       try {
-        const savedToken = localStorage.getItem('auth-token')
-        const savedUser = localStorage.getItem('auth-user')
+        const savedToken = localStorage.getItem('token')
+        const savedUser = localStorage.getItem('user')
         
         if (savedToken && savedUser) {
           setToken(savedToken)
@@ -66,11 +66,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Guardar en localStorage cuando cambie el usuario
   useEffect(() => {
     if (user && token) {
-      localStorage.setItem('auth-token', token)
-      localStorage.setItem('auth-user', JSON.stringify(user))
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
     } else {
-      localStorage.removeItem('auth-token')
-      localStorage.removeItem('auth-user')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
     }
   }, [user, token])
 
@@ -148,8 +148,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = () => {
     setUser(null)
     setToken(null)
-    localStorage.removeItem('auth-token')
-    localStorage.removeItem('auth-user')
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
     // También limpiar el carrito si es necesario
     // localStorage.removeItem('carnes-premium-cart')
   }

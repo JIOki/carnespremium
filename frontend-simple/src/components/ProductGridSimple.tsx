@@ -102,7 +102,7 @@ export default function ProductGrid() {
             {/* View More Button */}
             <div className="text-center">
               <a
-                href="/productos"
+                href="/busqueda"
                 className="inline-flex items-center px-8 py-4 bg-primary-500 text-white font-medium 
                          rounded-lg hover:bg-primary-600 transition-all duration-300 hover:transform 
                          hover:-translate-y-1 shadow-lg hover:shadow-xl"

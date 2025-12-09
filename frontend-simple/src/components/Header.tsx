@@ -40,25 +40,26 @@ export default function Header() {
                   Inicio
                 </Link>
                 <Link 
-                  href="/productos" 
+                  href="/busqueda" 
                   className="text-neutral-700 hover:text-primary-500 px-3 py-2 text-base font-medium transition-colors"
                 >
                   Productos
                 </Link>
                 <Link 
-                  href="/categorias" 
+                  href="/busqueda" 
                   className="text-neutral-700 hover:text-primary-500 px-3 py-2 text-base font-medium transition-colors"
                 >
                   Categorías
                 </Link>
                 <Link 
-                  href="/sobre-nosotros" 
+                  href="/gamification" 
                   className="text-neutral-700 hover:text-primary-500 px-3 py-2 text-base font-medium transition-colors"
                 >
                   Nosotros
                 </Link>
+                
                 <Link 
-                  href="/contacto" 
+                  href="/notifications" 
                   className="text-neutral-700 hover:text-primary-500 px-3 py-2 text-base font-medium transition-colors"
                 >
                   Contacto

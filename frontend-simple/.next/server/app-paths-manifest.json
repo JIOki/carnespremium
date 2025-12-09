@@ -1,0 +1,7 @@
+{
+  "/notifications/preferences/page": "app/notifications/preferences/page.js",
+  "/subscriptions/page": "app/subscriptions/page.js",
+  "/my-orders/page": "app/my-orders/page.js",
+  "/busqueda/page": "app/busqueda/page.js",
+  "/account/membership/page": "app/account/membership/page.js"
+}

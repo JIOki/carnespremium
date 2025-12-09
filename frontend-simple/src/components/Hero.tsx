@@ -42,7 +42,7 @@ export default function Hero() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/productos"
+            href="/busqueda"
             className="inline-flex items-center px-8 py-4 bg-primary-500 text-white font-medium rounded-lg 
                      hover:bg-primary-600 transition-all duration-300 hover:transform hover:-translate-y-1 
                      shadow-lg hover:shadow-xl group text-lg"
@@ -52,7 +52,7 @@ export default function Hero() {
           </Link>
           
           <Link
-            href="/sobre-nosotros"
+            href="/gamification"
             className="inline-flex items-center px-8 py-4 bg-white/10 text-white font-medium rounded-lg 
                      hover:bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20 
                      hover:border-white/30 text-lg"

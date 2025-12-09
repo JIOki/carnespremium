@@ -73,7 +73,7 @@ export default function UserMenu() {
           {/* Menu Items */}
           <div className="py-2">
             <Link
-              href="/perfil"
+              href="/account/membership"
               onClick={() => setIsOpen(false)}
               className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-500 transition-colors"
             >
@@ -82,7 +82,7 @@ export default function UserMenu() {
             </Link>
 
             <Link
-              href="/pedidos"
+              href="/my-orders"
               onClick={() => setIsOpen(false)}
               className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-500 transition-colors"
             >
@@ -91,7 +91,7 @@ export default function UserMenu() {
             </Link>
 
             <Link
-              href="/favoritos"
+              href="/wishlist"
               onClick={() => setIsOpen(false)}
               className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-500 transition-colors"
             >
@@ -100,7 +100,7 @@ export default function UserMenu() {
             </Link>
 
             <Link
-              href="/configuracion"
+              href="/notifications/preferences"
               onClick={() => setIsOpen(false)}
               className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-500 transition-colors"
             >
