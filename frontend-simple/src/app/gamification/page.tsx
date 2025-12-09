@@ -158,7 +158,7 @@ export default function GamificationDashboard() {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-gray-900">🎯 Challenges Activos</h3>
-            <a href="/gamification/challenges" className="text-red-600 hover:text-red-700 text-sm font-medium">
+            <a href="/gamification" className="text-red-600 hover:text-red-700 text-sm font-medium">
               Ver todos →
             </a>
           </div>
@@ -203,7 +203,7 @@ export default function GamificationDashboard() {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-gray-900">🏆 Badges Recientes</h3>
-            <a href="/gamification/badges" className="text-red-600 hover:text-red-700 text-sm font-medium">
+            <a href="/gamification" className="text-red-600 hover:text-red-700 text-sm font-medium">
               Ver todos →
             </a>
           </div>
@@ -261,13 +261,13 @@ export default function GamificationDashboard() {
           <p className="text-blue-100 text-sm">Completa misiones y gana puntos</p>
         </a>
 
-        <a href="/gamification/referrals" className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow">
+        <a href="/gamification" className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow">
           <div className="text-4xl mb-2">🎁</div>
           <h3 className="text-xl font-bold mb-1">Referidos</h3>
           <p className="text-green-100 text-sm">Invita amigos y gana recompensas</p>
         </a>
 
-        <a href="/gamification/rewards" className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow">
+        <a href="/gamification" className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow">
           <div className="text-4xl mb-2">🏪</div>
           <h3 className="text-xl font-bold mb-1">Recompensas</h3>
           <p className="text-purple-100 text-sm">Canjea tus puntos por premios</p>

@@ -15,7 +15,7 @@ export default function CheckoutSuccessPage() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push('/orders');
+          router.push('/my-orders');
           return 0;
         }
         return prev - 1;
@@ -100,7 +100,7 @@ export default function CheckoutSuccessPage() {
           {/* Actions */}
           <div className="space-y-3">
             <Link
-              href="/orders"
+              href="/my-orders"
               className="block w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
               Ver Mis Pedidos
@@ -124,7 +124,7 @@ export default function CheckoutSuccessPage() {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             ¿Necesitas ayuda?{' '}
-            <Link href="/support" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link href="/notifications" className="text-blue-600 hover:text-blue-700 font-medium">
               Contacta con soporte
             </Link>
           </p>

@@ -96,7 +96,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  href="/ayuda" 
+                  href="/notifications"
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Centro de Ayuda
@@ -104,7 +104,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/devoluciones" 
+                  href="/my-orders"
                   className="text-neutral-300 hover:text-accent-500 transition-colors"
                 >
                   Devoluciones
@@ -191,19 +191,19 @@ export default function Footer() {
             </div>
             <div className="flex space-x-6 text-neutral-400 text-sm">
               <Link 
-                href="/privacidad" 
+                href="#"  
                 className="hover:text-accent-500 transition-colors"
               >
                 Política de Privacidad
               </Link>
               <Link 
-                href="/terminos" 
+                href="#" 
                 className="hover:text-accent-500 transition-colors"
               >
                 Términos de Uso
               </Link>
               <Link 
-                href="/cookies" 
+                href="#" 
                 className="hover:text-accent-500 transition-colors"
               >
                 Política de Cookies

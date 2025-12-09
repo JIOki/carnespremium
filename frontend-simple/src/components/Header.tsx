@@ -132,28 +132,28 @@ export default function Header() {
                   Inicio
                 </Link>
                 <Link
-                  href="/productos"
+                  	href="/busqueda"
                   className="block px-3 py-2 text-base font-medium text-neutral-700 hover:text-primary-500 hover:bg-neutral-50 rounded-md transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Productos
                 </Link>
                 <Link
-                  href="/categorias"
+                 	href="/busqueda"
                   className="block px-3 py-2 text-base font-medium text-neutral-700 hover:text-primary-500 hover:bg-neutral-50 rounded-md transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Categorías
                 </Link>
                 <Link
-                  href="/sobre-nosotros"
+                  href="/gamification"
                   className="block px-3 py-2 text-base font-medium text-neutral-700 hover:text-primary-500 hover:bg-neutral-50 rounded-md transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Nosotros
                 </Link>
                 <Link
-                  href="/contacto"
+                  	href="/notifications"
                   className="block px-3 py-2 text-base font-medium text-neutral-700 hover:text-primary-500 hover:bg-neutral-50 rounded-md transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
