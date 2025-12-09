@@ -122,6 +122,7 @@ export default function AnalyticsDashboard() {
     labels: ['Pendientes', 'Completadas', 'Canceladas'],
     datasets: [
       {
+        label: 'Órdenes',
         data: [orderStats.pending, orderStats.completed, orderStats.cancelled],
         backgroundColor: [
           chartColors.warning,

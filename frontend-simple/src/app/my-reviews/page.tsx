@@ -209,7 +209,7 @@ export default function MyReviewsPage() {
               Comienza a compartir tus opiniones sobre los productos que has comprado
             </p>
             <Link
-              href="/products"
+              href="/busqueda"
               className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
             >
               <svg
@@ -249,7 +249,7 @@ export default function MyReviewsPage() {
                   )}
                   <div className="flex-1">
                     <Link
-                      href={`/products/${review.product?.slug}`}
+                      href={`/busqueda/${review.product?.slug}`}
                       className="font-semibold text-gray-900 hover:text-red-600 transition-colors mb-1 block"
                     >
                       {review.product?.name || 'Producto'}

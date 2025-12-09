@@ -348,11 +348,11 @@ export default function RegisterPage() {
                 />
                 <label htmlFor="terms" className="ml-2 text-sm text-neutral-700">
                   Acepto los{' '}
-                  <Link href="/terminos" className="text-primary-500 hover:text-primary-600 font-medium">
+                  <Link href="#" className="text-primary-500 hover:text-primary-600 font-medium">
                     Términos y Condiciones
                   </Link>
                   {' '}y la{' '}
-                  <Link href="/privacidad" className="text-primary-500 hover:text-primary-600 font-medium">
+                  <Link href="#" className="text-primary-500 hover:text-primary-600 font-medium">
                     Política de Privacidad
                   </Link>
                 </label>

@@ -115,7 +115,7 @@ export default function AdminGamificationPage() {
           📅 Generar Challenges Semanales
         </button>
         <button
-          onClick={() => window.location.href = '/admin/gamification/rewards'}
+          onClick={() => window.location.href = '/admin/gamification'}
           className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition"
         >
           🎁 Gestionar Recompensas

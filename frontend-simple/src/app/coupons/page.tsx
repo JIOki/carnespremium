@@ -118,7 +118,7 @@ export default function PublicCouponsPage() {
               Por el momento no tenemos cupones públicos activos
             </p>
             <Link
-              href="/products"
+              href="/busqueda"
               className="inline-block px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
             >
               Ver Productos
@@ -221,7 +221,7 @@ export default function PublicCouponsPage() {
 
                     {/* CTA */}
                     <Link
-                      href="/cart"
+                      href="/checkout"
                       className="block w-full text-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
                     >
                       Usar Cupón

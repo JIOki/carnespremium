@@ -150,14 +150,14 @@ export default function InventoryMovementsPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <p className="text-sm text-gray-600">Entradas</p>
               <p className="text-2xl font-bold text-green-600">
-                {stats.byType.find(t => t.type === 'IN')?._count || 0}
+                {stats.byType.find(t => t.type === 'IN')?.count || 0}
               </p>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
               <p className="text-sm text-gray-600">Salidas</p>
               <p className="text-2xl font-bold text-red-600">
-                {stats.byType.find(t => t.type === 'OUT')?._count || 0}
+                {stats.byType.find(t => t.type === 'OUT')?.count || 0}
               </p>
             </div>
           </div>

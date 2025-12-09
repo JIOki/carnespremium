@@ -179,7 +179,7 @@ export default function LoginPage() {
               </div>
               
               <Link
-                href="/auth/forgot-password"
+                href="#"
                 className="text-sm text-primary-500 hover:text-primary-600 font-medium"
               >
                 ¿Olvidaste tu contraseña?

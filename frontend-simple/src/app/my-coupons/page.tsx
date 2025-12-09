@@ -103,7 +103,7 @@ export default function MyCouponsHistoryPage() {
                 Ver Cupones
               </Link>
               <Link
-                href="/products"
+                href="/busqueda"
                 className="inline-block px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
               >
                 Ver Productos
