@@ -81,7 +81,7 @@ export default function MyOrdersPage() {
               ¡Comienza a comprar nuestros productos premium!
             </p>
             <button
-              onClick={() => router.push('/products')}
+              onClick={() => router.push('/busqueda')}
               className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition font-medium"
             >
               Ver Productos

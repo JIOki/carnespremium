@@ -49,7 +49,7 @@ export default function OrderSummary({ items, total, itemsCount }: OrderSummaryP
                 Cantidad: {item.quantity}
               </p>
               <p className="text-sm font-semibold text-neutral-900 mt-1">
-                ${item.subtotal.toFixed(2)}
+                ${(item.price ?? item.product?.price ?? 0).toFixed(2)}
               </p>
             </div>
           </div>

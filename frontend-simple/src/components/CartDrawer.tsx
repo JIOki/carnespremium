@@ -110,7 +110,7 @@ export default function CartDrawer() {
                       {item.product.name}
                     </h3>
                     <p className="text-sm text-neutral-600 mb-2">
-                      ${item.price.toFixed(2)} {item.product.unit && `/ ${item.product.unit}`}
+                      ${(item.price ?? item.product?.price ?? 0).toFixed(2)} {item.product.unit && `/ ${item.product.unit}`}
                     </p>
 
                     {/* Quantity Controls */}
@@ -152,7 +152,7 @@ export default function CartDrawer() {
                   {/* Subtotal */}
                   <div className="text-right">
                     <p className="font-semibold text-neutral-900">
-                      ${item.subtotal.toFixed(2)}
+                      ${(item.price ?? item.product?.price ?? 0).toFixed(2)}
                     </p>
                   </div>
                 </div>

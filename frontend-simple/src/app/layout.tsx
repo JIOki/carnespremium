@@ -1,15 +1,20 @@
 import { Inter, Lora } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
+// Agregar imports
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import CartDrawer from '@/components/CartDrawer'
 
-const inter = Inter({ 
+
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap'
 })
 
-const lora = Lora({ 
-  subsets: ['latin'], 
+const lora = Lora({
+  subsets: ['latin'],
   variable: '--font-lora',
   weight: ['400', '500', '600', '700'],
   display: 'swap'
@@ -56,7 +61,13 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} ${lora.variable}`}>
       <body className={`${inter.className} bg-neutral-50 text-neutral-900`}>
         <Providers>
-          {children}
+          <Header />
+          
+          <main className="min-h-screen">
+            {children}
+          </main>
+          <Footer />
+          <CartDrawer />
         </Providers>
       </body>
     </html>
