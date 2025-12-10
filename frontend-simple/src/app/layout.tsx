@@ -1,5 +1,6 @@
 import { Inter, Lora } from 'next/font/google'
-import './globals.css'
+import '../styles/globals.css';
+
 import { Providers } from './providers'
 // Agregar imports
 import Header from '@/components/Header'

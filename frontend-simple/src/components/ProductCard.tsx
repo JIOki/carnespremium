@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ShoppingCart, Heart, Star, Check } from 'lucide-react'
 import { Product } from '@/types'
 import { useCart } from '@/context/CartContext'
+import wishlistService from '@/services/wishlistService'
 
 interface ProductCardProps {
   product: Product & {
@@ -48,9 +49,23 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   }
 
-  const handleToggleWishlist = () => {
-    setIsWishlisted(!isWishlisted)
-    // TODO: Aquí iría la lógica real de wishlist
+  const handleToggleWishlist = async () => {
+    try {
+      if (isWishlisted) {
+        // Remover de wishlist - necesitamos el wishlistItemId
+        // Por ahora solo cambiamos el estado visual
+        setIsWishlisted(false)
+      } else {
+        await wishlistService.addToWishlist({ productId: product.id })
+        setIsWishlisted(true)
+      }
+    } catch (error: any) {
+      console.error('Error al actualizar wishlist:', error)
+      if (error.response?.status === 401) {
+        // Redirigir al login si no está autenticado
+        window.location.href = '/auth/login'
+      }
+    }
   }
 
   // Imagen placeholder si no hay imagen

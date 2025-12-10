@@ -3,19 +3,23 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  HeartIcon,
-  TrashIcon,
-  BellIcon,
-  BellSlashIcon,
-  ShareIcon,
-  FunnelIcon,
-  XMarkIcon,
-  ShoppingCartIcon,
-  CurrencyDollarIcon,
-  TagIcon
-} from '@heroicons/react/24/outline';
-import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
-import wishlistService, { WishlistItem, WishlistStats } from '@/services/wishlistService';
+  Heart,
+  Trash2,
+  Bell,
+  BellOff,
+  Share2,
+  Filter,
+  X,
+  ShoppingCart,
+  DollarSign,
+  Tag,
+  Play,
+  Users,
+  BarChart3,
+  TrendingUp,
+
+} from 'lucide-react';
+import wishlistService, { WishlistItem, WishlistPriority, WishlistStats } from '@/services/wishlistService';
 import Image from 'next/image';
 
 export default function WishlistPage() {
@@ -23,10 +27,14 @@ export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [stats, setStats] = useState<WishlistStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<{
+    priority: WishlistPriority | '';
+    sortBy: string;
+    sortOrder: 'asc' | 'desc';
+  }>({
     priority: '',
     sortBy: 'createdAt',
-    sortOrder: 'desc' as 'asc' | 'desc'
+    sortOrder: 'desc'
   });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -38,7 +46,10 @@ export default function WishlistPage() {
   const loadWishlist = async () => {
     try {
       setLoading(true);
-      const response = await wishlistService.getWishlist(filters);
+      const response = await wishlistService.getWishlist({
+        ...filters,
+        priority: filters.priority || undefined
+      });
 
       if (response.success) {
         setItems(response.data.items);
@@ -137,7 +148,7 @@ export default function WishlistPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <HeartSolidIcon className="w-8 h-8 text-red-500" />
+              <Heart className="w-8 h-8 text-red-500" />
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Mi Lista de Deseos
               </h1>
@@ -148,7 +159,7 @@ export default function WishlistPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
               >
-                <FunnelIcon className="w-5 h-5" />
+                <Filter className="w-5 h-5" />
                 Filtros
               </button>
 
@@ -158,7 +169,7 @@ export default function WishlistPage() {
                     onClick={handleShare}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                   >
-                    <ShareIcon className="w-5 h-5" />
+                    <Share2 className="w-5 h-5" />
                     Compartir
                   </button>
 
@@ -166,7 +177,7 @@ export default function WishlistPage() {
                     onClick={handleClearAll}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
                   >
-                    <TrashIcon className="w-5 h-5" />
+                    <Trash2 className="w-5 h-5" />
                     Limpiar todo
                   </button>
                 </>
@@ -227,7 +238,7 @@ export default function WishlistPage() {
                 onClick={() => setShowFilters(false)}
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
-                <XMarkIcon className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -238,7 +249,7 @@ export default function WishlistPage() {
                 </label>
                 <select
                   value={filters.priority}
-                  onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+                  onChange={(e) => setFilters({ ...filters, priority: e.target.value as WishlistPriority | '' })}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                 >
                   <option value="">Todas</option>
@@ -283,7 +294,7 @@ export default function WishlistPage() {
         {/* Products Grid */}
         {items.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-12 text-center border border-gray-200 dark:border-gray-700">
-            <HeartIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Tu lista de deseos está vacía
             </h3>
@@ -291,7 +302,7 @@ export default function WishlistPage() {
               Comienza a agregar productos que te gusten
             </p>
             <button
-              onClick={() => router.push('/products')}
+              onClick={() => router.push('/busqueda')}
               className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               Explorar productos
@@ -315,7 +326,7 @@ export default function WishlistPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <TagIcon className="w-16 h-16 text-gray-400" />
+                      <Tag className="w-16 h-16 text-gray-400" />
                     </div>
                   )}
 
@@ -372,34 +383,32 @@ export default function WishlistPage() {
                   <div className="flex items-center gap-2 mb-4">
                     <button
                       onClick={() => handleToggleAlert(item, 'price')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
-                        item.notifyPriceChange
-                          ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/20 dark:border-blue-600 dark:text-blue-400'
-                          : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-colors ${item.notifyPriceChange
+                        ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/20 dark:border-blue-600 dark:text-blue-400'
+                        : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
                       title="Notificar cambios de precio"
                     >
                       {item.notifyPriceChange ? (
-                        <BellIcon className="w-4 h-4" />
+                        <Bell className="w-4 h-4" />
                       ) : (
-                        <BellSlashIcon className="w-4 h-4" />
+                        <Bell className="w-4 h-4" />
                       )}
                       <span className="text-xs">Precio</span>
                     </button>
 
                     <button
                       onClick={() => handleToggleAlert(item, 'availability')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
-                        item.notifyAvailability
-                          ? 'bg-green-50 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-600 dark:text-green-400'
-                          : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-colors ${item.notifyAvailability
+                        ? 'bg-green-50 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-600 dark:text-green-400'
+                        : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
                       title="Notificar disponibilidad"
                     >
                       {item.notifyAvailability ? (
-                        <BellIcon className="w-4 h-4" />
+                        <Bell className="w-4 h-4" />
                       ) : (
-                        <BellSlashIcon className="w-4 h-4" />
+                        <Bell className="w-4 h-4" />
                       )}
                       <span className="text-xs">Stock</span>
                     </button>
@@ -412,7 +421,7 @@ export default function WishlistPage() {
                       className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                       disabled={!item.inStock}
                     >
-                      <ShoppingCartIcon className="w-5 h-5" />
+                      <ShoppingCart className="w-5 h-5" />
                       Ver producto
                     </button>
 
@@ -421,7 +430,7 @@ export default function WishlistPage() {
                       className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                       title="Eliminar"
                     >
-                      <TrashIcon className="w-5 h-5" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>

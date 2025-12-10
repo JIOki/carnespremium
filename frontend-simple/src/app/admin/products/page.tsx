@@ -10,12 +10,12 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  
+
   // Filters
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -37,10 +37,13 @@ export default function AdminProducts() {
         sortBy,
         sortOrder
       });
-      
-      setProducts(response.data.products);
-      setTotal(response.data.pagination.total);
-      setTotalPages(response.data.pagination.totalPages);
+      console.log('API Response:', response);  // <-- Agrega esto
+      console.log('Response data:', response.data);  // <-- Y esto
+
+      const data = response.data;
+      setProducts(data?.products || []);
+      setTotal(data?.pagination?.total || 0);
+      setTotalPages(data?.pagination?.totalPages || 1);
     } catch (err: any) {
       setError(err.message || 'Error al cargar productos');
     } finally {
@@ -50,7 +53,7 @@ export default function AdminProducts() {
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`¿Estás seguro de desactivar "${name}"?`)) return;
-    
+
     try {
       await adminService.deleteProduct(id, false);
       loadProducts();
@@ -108,7 +111,7 @@ export default function AdminProducts() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
-          
+
           <select
             value={status}
             onChange={(e) => {
@@ -121,7 +124,7 @@ export default function AdminProducts() {
             <option value="active">Activos</option>
             <option value="inactive">Inactivos</option>
           </select>
-          
+
           <select
             value={`${sortBy}-${sortOrder}`}
             onChange={(e) => {
@@ -255,11 +258,10 @@ export default function AdminProducts() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          product.isActive
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.isActive
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
-                        }`}
+                          }`}
                       >
                         {product.isActive ? 'Activo' : 'Inactivo'}
                       </span>
@@ -338,11 +340,10 @@ export default function AdminProducts() {
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? 'z-10 bg-red-50 border-red-500 text-red-600'
                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>

@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient } from './api';
 
 export interface DashboardStats {
   overview: {
@@ -143,7 +143,8 @@ export interface User {
 export interface PaginatedResponse<T> {
   success: boolean;
   data: {
-    [key: string]: T[];
+    products: never[];
+    items: T[];
     pagination: {
       total: number;
       page: number;
@@ -167,7 +168,7 @@ class AdminService {
 
   async getDashboard(): Promise<DashboardStats> {
     const response = await apiClient.get<ApiResponse<DashboardStats>>(`${this.baseUrl}/dashboard`);
-    return response.data!;
+    return response.data.data!;
   }
 
   async getAnalytics(period: 'week' | 'month' | 'year' = 'month'): Promise<any> {
@@ -191,22 +192,22 @@ class AdminService {
     const response = await apiClient.get<PaginatedResponse<Product>>(`${this.baseUrl}/products`, {
       params
     });
-    return response;
+    return response.data;
   }
 
   async getProduct(id: string): Promise<Product> {
     const response = await apiClient.get<ApiResponse<Product>>(`${this.baseUrl}/products/${id}`);
-    return response.data!;
+    return response.data.data!;
   }
 
   async createProduct(data: Partial<Product> & { variants: Partial<ProductVariant>[] }): Promise<Product> {
     const response = await apiClient.post<ApiResponse<Product>>(`${this.baseUrl}/products`, data);
-    return response.data!;
+    return response.data.data!;
   }
 
   async updateProduct(id: string, data: Partial<Product>): Promise<Product> {
     const response = await apiClient.put<ApiResponse<Product>>(`${this.baseUrl}/products/${id}`, data);
-    return response.data!;
+    return response.data.data!;
   }
 
   async deleteProduct(id: string, permanent: boolean = false): Promise<void> {
@@ -220,7 +221,7 @@ class AdminService {
       `${this.baseUrl}/products/${productId}/variants`,
       data
     );
-    return response.data!;
+    return response.data.data!;
   }
 
   async updateVariant(productId: string, variantId: string, data: Partial<ProductVariant>): Promise<ProductVariant> {
@@ -228,7 +229,7 @@ class AdminService {
       `${this.baseUrl}/products/${productId}/variants/${variantId}`,
       data
     );
-    return response.data!;
+    return response.data.data!;
   }
 
   async deleteVariant(productId: string, variantId: string): Promise<void> {
@@ -251,12 +252,12 @@ class AdminService {
     const response = await apiClient.get<PaginatedResponse<Order>>(`${this.baseUrl}/orders`, {
       params
     });
-    return response;
+    return response.data;
   }
 
   async getOrder(id: string): Promise<Order> {
     const response = await apiClient.get<ApiResponse<Order>>(`${this.baseUrl}/orders/${id}`);
-    return response.data!;
+    return response.data.data!;
   }
 
   async updateOrderStatus(id: string, status: string, message?: string): Promise<Order> {
@@ -265,7 +266,7 @@ class AdminService {
       message,
       notifyUser: true
     });
-    return response.data!;
+    return response.data.data!;
   }
 
   async updateOrderPayment(
@@ -279,7 +280,7 @@ class AdminService {
       paymentMethod,
       transactionId
     });
-    return response.data!;
+    return response.data.data!;
   }
 
   async cancelOrder(id: string, reason?: string): Promise<void> {
@@ -302,12 +303,12 @@ class AdminService {
     const response = await apiClient.get<PaginatedResponse<User>>(`${this.baseUrl}/users`, {
       params
     });
-    return response;
+    return response.data;
   }
 
   async getUser(id: string): Promise<User> {
     const response = await apiClient.get<ApiResponse<User>>(`${this.baseUrl}/users/${id}`);
-    return response.data!;
+    return response.data.data!;
   }
 
   async createUser(data: {
@@ -319,12 +320,12 @@ class AdminService {
     isActive?: boolean;
   }): Promise<User> {
     const response = await apiClient.post<ApiResponse<User>>(`${this.baseUrl}/users`, data);
-    return response.data!;
+    return response.data.data!;
   }
 
   async updateUser(id: string, data: Partial<User> & { password?: string }): Promise<User> {
     const response = await apiClient.put<ApiResponse<User>>(`${this.baseUrl}/users/${id}`, data);
-    return response.data!;
+   return response.data.data!;
   }
 
   async deleteUser(id: string, permanent: boolean = false): Promise<void> {
@@ -337,7 +338,7 @@ class AdminService {
 
   async getCategories(): Promise<any[]> {
     const response = await apiClient.get<ApiResponse<any[]>>(`${this.baseUrl}/categories`);
-    return response.data!;
+    return response.data.data!;
   }
 
   async createCategory(data: {

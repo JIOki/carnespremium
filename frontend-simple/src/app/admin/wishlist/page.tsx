@@ -2,15 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
 import {
-  HeartIcon,
-  BellIcon,
-  UserGroupIcon,
-  ChartBarIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  PlayIcon
-} from '@heroicons/react/24/outline';
+  Heart,
+  Trash2,
+  Bell,
+  BellOff,
+  Share2,
+  Filter,
+  X,
+  ShoppingCart,
+  DollarSign,
+  Tag,
+  Play,
+  Users,
+  BarChart3,
+  TrendingUp 
+} from 'lucide-react';
 import wishlistService, { WishlistAdminStats } from '@/services/wishlistService';
 import Image from 'next/image';
 
@@ -89,7 +97,7 @@ export default function AdminWishlistStatsPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <HeartIcon className="w-8 h-8 text-red-500" />
+              <Heart fill="currentColor"className="w-8 h-8 text-red-500" />
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Estadísticas de Wishlist
               </h1>
@@ -112,7 +120,7 @@ export default function AdminWishlistStatsPage() {
                 disabled={processingAlerts}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
-                <PlayIcon className="w-5 h-5" />
+                <Play className="w-5 h-5" />
                 {processingAlerts ? 'Procesando...' : 'Procesar alertas de precio'}
               </button>
             </div>
@@ -123,7 +131,7 @@ export default function AdminWishlistStatsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <HeartIcon className="w-8 h-8 text-red-500" />
+              <Heart className="w-8 h-8 text-red-500" />
               <span className="text-sm text-gray-600 dark:text-gray-400">Total</span>
             </div>
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -136,7 +144,7 @@ export default function AdminWishlistStatsPage() {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <UserGroupIcon className="w-8 h-8 text-blue-500" />
+              <Users className="w-8 h-8 text-blue-500" />
               <span className="text-sm text-gray-600 dark:text-gray-400">Usuarios</span>
             </div>
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -149,7 +157,7 @@ export default function AdminWishlistStatsPage() {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <BellIcon className="w-8 h-8 text-yellow-500" />
+              <Bell className="w-8 h-8 text-yellow-500" />
               <span className="text-sm text-gray-600 dark:text-gray-400">Alertas</span>
             </div>
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -162,7 +170,7 @@ export default function AdminWishlistStatsPage() {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <ChartBarIcon className="w-8 h-8 text-green-500" />
+              <BarChart3 className="w-8 h-8 text-green-500" />
               <span className="text-sm text-gray-600 dark:text-gray-400">Promedio</span>
             </div>
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -202,7 +210,7 @@ export default function AdminWishlistStatsPage() {
         {/* Most Wishlisted Products */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-8 border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-            <ArrowTrendingUpIcon className="w-6 h-6 text-red-500" />
+            <TrendingUp className="w-6 h-6 text-red-500" />
             Productos Más Deseados (Top 20)
           </h2>
 
@@ -298,7 +306,7 @@ export default function AdminWishlistStatsPage() {
                       </td>
                       <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <HeartIcon className="w-5 h-5 text-red-500" />
+                          <Heart className="w-5 h-5 text-red-500" />
                           <span className="text-lg font-bold text-gray-900 dark:text-white">
                             {item.count}
                           </span>
@@ -338,7 +346,7 @@ export default function AdminWishlistStatsPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <HeartIcon className="w-4 h-4 text-red-500" />
+                      <Heart className="w-4 h-4 text-red-500" />
                       <span className="font-bold text-gray-900 dark:text-white">
                         {category.wishlist_count}
                       </span>

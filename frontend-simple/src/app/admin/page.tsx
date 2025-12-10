@@ -46,7 +46,7 @@ export default function AdminDashboard() {
   const statCards = [
     {
       name: 'Órdenes Totales',
-      value: stats.overview.totalOrders.toLocaleString(),
+      value: (stats.overview.totalOrders ?? 0).toLocaleString(),
       change: `${stats.overview.ordersToday} hoy`,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,8 +57,8 @@ export default function AdminDashboard() {
     },
     {
       name: 'Revenue Total',
-      value: `$${stats.overview.totalRevenue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-      change: `$${stats.overview.revenueToday.toLocaleString('es-MX', { minimumFractionDigits: 2 })} hoy`,
+      value: `$${(stats.overview.totalRevenue ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      change: `$${(stats.overview.revenueToday ?? 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })} hoy`,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
     },
     {
       name: 'Usuarios',
-      value: stats.overview.totalUsers.toLocaleString(),
+      value: (stats.overview.totalUsers ?? 0).toLocaleString(),
       change: 'Clientes registrados',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,8 +79,8 @@ export default function AdminDashboard() {
     },
     {
       name: 'Productos',
-      value: stats.overview.activeProducts.toLocaleString(),
-      change: `de ${stats.overview.totalProducts} totales`,
+      value: (stats.overview.activeProducts ?? 0).toLocaleString(),
+      change: `de ${stats.overview.totalProducts ?? 0} totales`,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
