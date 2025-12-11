@@ -43,6 +43,8 @@ const analyticsRoutes = require('./routes/analytics');
 const { initializeDatabase } = require('./database/connection');
 const RedisService = require('./services/RedisService');
 const SocketService = require('./services/SocketService');
+const chatRoutes = require('./routes/chat');
+
 
 const app = express();
 const server = createServer(app);
@@ -125,6 +127,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Rutas de tracking (parcialmente públicas para seguimiento)
 app.use('/api/tracking', trackingRoutes);
