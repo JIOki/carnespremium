@@ -67,10 +67,10 @@ export default function RegisterPage() {
     // Contraseña
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida'
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres'
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Debe contener mayúsculas, minúsculas y números'
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'La contraseña debe tener al menos 8 caracteres'
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/.test(formData.password)) {
+      newErrors.password = 'Revisa los requisitos de contraseña abajo'
     }
     
     // Confirmar Contraseña
@@ -116,16 +116,28 @@ export default function RegisterPage() {
     }
   }
 
+  // Requisitos de contraseña
+  const passwordRequirements = [
+    { label: 'Mínimo 8 caracteres', met: formData.password.length >= 8 },
+    { label: 'Al menos una minúscula', met: /[a-z]/.test(formData.password) },
+    { label: 'Al menos una mayúscula', met: /[A-Z]/.test(formData.password) },
+    { label: 'Al menos un número', met: /\d/.test(formData.password) },
+    { label: 'Al menos un carácter especial (!@#$%^&*)', met: /[!@#$%^&*]/.test(formData.password) },
+  ]
+
+  const allRequirementsMet = passwordRequirements.every(r => r.met)
+
   // Indicador de fortaleza de contraseña
   const getPasswordStrength = () => {
     const { password } = formData
     if (!password) return 0
     
     let strength = 0
-    if (password.length >= 6) strength += 25
-    if (password.length >= 8) strength += 25
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25
-    if (/\d/.test(password)) strength += 25
+    if (password.length >= 8) strength += 20
+    if (/[a-z]/.test(password)) strength += 20
+    if (/[A-Z]/.test(password)) strength += 20
+    if (/\d/.test(password)) strength += 20
+    if (/[!@#$%^&*]/.test(password)) strength += 20
     
     return strength
   }
@@ -268,18 +280,29 @@ export default function RegisterPage() {
               {/* Password Strength Indicator */}
               {formData.password && (
                 <div className="mt-2">
-                  <div className="flex gap-1 mb-1">
-                    <div className={`h-1 flex-1 rounded ${passwordStrength >= 25 ? 'bg-red-500' : 'bg-neutral-200'}`} />
-                    <div className={`h-1 flex-1 rounded ${passwordStrength >= 50 ? 'bg-yellow-500' : 'bg-neutral-200'}`} />
-                    <div className={`h-1 flex-1 rounded ${passwordStrength >= 75 ? 'bg-green-400' : 'bg-neutral-200'}`} />
+                  <div className="flex gap-1 mb-2">
+                    <div className={`h-1 flex-1 rounded ${passwordStrength >= 20 ? 'bg-red-500' : 'bg-neutral-200'}`} />
+                    <div className={`h-1 flex-1 rounded ${passwordStrength >= 40 ? 'bg-orange-500' : 'bg-neutral-200'}`} />
+                    <div className={`h-1 flex-1 rounded ${passwordStrength >= 60 ? 'bg-yellow-500' : 'bg-neutral-200'}`} />
+                    <div className={`h-1 flex-1 rounded ${passwordStrength >= 80 ? 'bg-green-400' : 'bg-neutral-200'}`} />
                     <div className={`h-1 flex-1 rounded ${passwordStrength === 100 ? 'bg-green-600' : 'bg-neutral-200'}`} />
                   </div>
-                  <p className="text-xs text-neutral-600">
-                    {passwordStrength < 50 && 'Contraseña débil'}
-                    {passwordStrength >= 50 && passwordStrength < 75 && 'Contraseña media'}
-                    {passwordStrength >= 75 && passwordStrength < 100 && 'Contraseña fuerte'}
-                    {passwordStrength === 100 && 'Contraseña muy fuerte'}
-                  </p>
+                  
+                  {/* Lista de requisitos */}
+                  <div className="space-y-1 mt-2">
+                    {passwordRequirements.map((req, index) => (
+                      <div key={index} className="flex items-center gap-2 text-xs">
+                        {req.met ? (
+                          <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                        ) : (
+                          <div className="w-3.5 h-3.5 rounded-full border border-neutral-300" />
+                        )}
+                        <span className={req.met ? 'text-green-600' : 'text-neutral-500'}>
+                          {req.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               

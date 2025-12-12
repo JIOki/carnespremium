@@ -3505,6 +3505,10 @@ video {
   --tw-text-opacity: 1;
   color: rgb(122 27 56 / var(--tw-text-opacity, 1));
 }
+.text-primary-700 {
+  --tw-text-opacity: 1;
+  color: rgb(104 24 49 / var(--tw-text-opacity, 1));
+}
 .text-purple-100 {
   --tw-text-opacity: 1;
   color: rgb(243 232 255 / var(--tw-text-opacity, 1));
@@ -3920,6 +3924,10 @@ h1, h2, h3, h4, h5, h6,
 .hover\:border-neutral-300:hover {
   --tw-border-opacity: 1;
   border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+}
+.hover\:border-neutral-400:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(156 163 175 / var(--tw-border-opacity, 1));
 }
 .hover\:border-orange-500:hover {
   --tw-border-opacity: 1;

@@ -1,11 +1,22 @@
+
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCart } from '@/context/CartContext'
-import { User, Mail, Phone, MapPin, CreditCard, Calendar, Lock } from 'lucide-react'
+import { User, Mail, Phone, MapPin, CreditCard, Calendar, Lock, Plus, Check } from 'lucide-react'
 
 interface CheckoutFormProps {
   onComplete: (orderId: string) => void
+}
+
+interface SavedAddress {
+  id: string
+  address1: string
+  address2?: string
+  city: string
+  state: string
+  postalCode: string
+  isDefault: boolean
 }
 
 interface FormData {
@@ -47,17 +58,131 @@ const initialFormData: FormData = {
   cardCvv: '',
 }
 
+// Hook seguro para auth que lee de localStorage
+function useAuthSafe() {
+  const [user, setUser] = useState<{ id: string; name: string; email: string; role: string } | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user')
+    const storedToken = localStorage.getItem('token') || localStorage.getItem('auth-token')
+    if (storedUser && storedToken) {
+      try {
+        setUser(JSON.parse(storedUser))
+        setToken(storedToken)
+      } catch {}
+    }
+  }, [])
+
+  return { user, token, isAuthenticated: !!user && !!token }
+}
+
 export default function CheckoutForm({ onComplete }: CheckoutFormProps) {
   const { items, total, clearCart } = useCart()
+  const { user, token, isAuthenticated } = useAuthSafe()
+  
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [errors, setErrors] = useState<Partial<FormData>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1) // 1: Info, 2: Dirección, 3: Pago
+  const [currentStep, setCurrentStep] = useState(1)
+  
+  // Estados para direcciones guardadas
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false)
+  const [saveNewAddress, setSaveNewAddress] = useState(false)
+  const [loadingAddresses, setLoadingAddresses] = useState(false)
+
+  // Cargar direcciones guardadas si está autenticado
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadSavedAddresses()
+      // Pre-llenar datos del usuario
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email
+      }))
+    }
+  }, [isAuthenticated, user])
+
+  const loadSavedAddresses = async () => {
+    if (!user || !token) return
+    setLoadingAddresses(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/users/${user.id}/addresses`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setSavedAddresses(data.data || [])
+        // Seleccionar dirección por defecto
+        const defaultAddr = data.data?.find((a: SavedAddress) => a.isDefault)
+        if (defaultAddr) {
+          setSelectedAddressId(defaultAddr.id)
+          fillAddressFromSaved(defaultAddr)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading addresses:', error)
+    } finally {
+      setLoadingAddresses(false)
+    }
+  }
+
+  const fillAddressFromSaved = (addr: SavedAddress) => {
+    setFormData(prev => ({
+      ...prev,
+      address: addr.address1 + (addr.address2 ? `, ${addr.address2}` : ''),
+      city: addr.city,
+      state: addr.state,
+      zipCode: addr.postalCode
+    }))
+  }
+
+  const handleSelectAddress = (addr: SavedAddress) => {
+    setSelectedAddressId(addr.id)
+    setShowNewAddressForm(false)
+    fillAddressFromSaved(addr)
+  }
+
+  const handleNewAddress = () => {
+    setSelectedAddressId(null)
+    setShowNewAddressForm(true)
+    setFormData(prev => ({
+      ...prev,
+      address: '',
+      city: '',
+      state: '',
+      zipCode: ''
+    }))
+  }
+
+  const saveAddressToServer = async () => {
+    if (!user || !token) return
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/users/${user.id}/addresses`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          address1: formData.address,
+          city: formData.city,
+          state: formData.state,
+          postalCode: formData.zipCode,
+          isDefault: savedAddresses.length === 0
+        })
+      })
+    } catch (error) {
+      console.error('Error saving address:', error)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    // Limpiar error del campo cuando el usuario escribe
     if (errors[name as keyof FormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }))
     }
@@ -141,7 +266,11 @@ export default function CheckoutForm({ onComplete }: CheckoutFormProps) {
     setIsSubmitting(true)
 
     try {
-      // Simular llamada a la API
+      // Guardar dirección si el usuario lo solicitó
+      if (isAuthenticated && saveNewAddress && showNewAddressForm) {
+        await saveAddressToServer()
+      }
+
       const orderData = {
         customer: {
           name: formData.name,
@@ -168,16 +297,12 @@ export default function CheckoutForm({ onComplete }: CheckoutFormProps) {
 
       console.log('Orden a enviar:', orderData)
 
-      // TODO: Reemplazar con llamada real a la API
       await new Promise(resolve => setTimeout(resolve, 2000))
 
-      // Generar número de orden
       const orderId = `ORD-${Date.now()}`
 
-      // Limpiar carrito
       await clearCart()
 
-      // Completar orden
       onComplete(orderId)
 
     } catch (error) {
@@ -317,81 +442,167 @@ export default function CheckoutForm({ onComplete }: CheckoutFormProps) {
               </h2>
             </div>
 
-            {/* Dirección */}
-            <div>
-              <label htmlFor="address" className="block text-sm font-medium text-neutral-700 mb-2">
-                Dirección Completa *
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 w-5 h-5 text-neutral-400" />
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 
-                           ${errors.address ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-primary-500'}`}
-                  placeholder="Calle, número, colonia"
-                />
+            {/* Direcciones Guardadas (solo si está autenticado) */}
+            {isAuthenticated && (
+              <div className="mb-6">
+                {loadingAddresses ? (
+                  <div className="text-center py-4">
+                    <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-sm text-neutral-500 mt-2">Cargando direcciones...</p>
+                  </div>
+                ) : savedAddresses.length > 0 ? (
+                  <>
+                    <label className="block text-sm font-medium text-neutral-700 mb-3">
+                      Direcciones Guardadas
+                    </label>
+                    <div className="space-y-2 mb-4">
+                      {savedAddresses.map((addr) => (
+                        <div
+                          key={addr.id}
+                          onClick={() => handleSelectAddress(addr)}
+                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all flex items-start ${
+                            selectedAddressId === addr.id && !showNewAddressForm
+                              ? 'border-primary-500 bg-primary-50'
+                              : 'border-neutral-200 hover:border-neutral-300'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium text-neutral-900">
+                              {addr.address1}
+                              {addr.address2 && `, ${addr.address2}`}
+                            </p>
+                            <p className="text-sm text-neutral-600">
+                              {addr.city}, {addr.state} {addr.postalCode}
+                            </p>
+                            {addr.isDefault && (
+                              <span className="inline-block mt-1 text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded">
+                                Predeterminada
+                              </span>
+                            )}
+                          </div>
+                          {selectedAddressId === addr.id && !showNewAddressForm && (
+                            <Check className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleNewAddress}
+                      className={`w-full p-3 border-2 border-dashed rounded-lg flex items-center justify-center gap-2 transition-all ${
+                        showNewAddressForm
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-neutral-300 text-neutral-600 hover:border-neutral-400'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Agregar Nueva Dirección
+                    </button>
+                  </>
+                ) : (
+                  <div className="p-4 bg-neutral-50 rounded-lg text-center">
+                    <p className="text-sm text-neutral-600">No tienes direcciones guardadas</p>
+                  </div>
+                )}
               </div>
-              {errors.address && <p className="mt-1 text-sm text-red-500">{errors.address}</p>}
-            </div>
+            )}
 
-            {/* Ciudad y Estado */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="city" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Ciudad *
-                </label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 
-                           ${errors.city ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-primary-500'}`}
-                  placeholder="Ciudad de México"
-                />
-                {errors.city && <p className="mt-1 text-sm text-red-500">{errors.city}</p>}
-              </div>
+            {/* Formulario de dirección (visible si no hay direcciones o se selecciona nueva) */}
+            {(!isAuthenticated || savedAddresses.length === 0 || showNewAddressForm) && (
+              <>
+                {/* Dirección */}
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-neutral-700 mb-2">
+                    Dirección Completa *
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 w-5 h-5 text-neutral-400" />
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 
+                               ${errors.address ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-primary-500'}`}
+                      placeholder="Calle, número, colonia"
+                    />
+                  </div>
+                  {errors.address && <p className="mt-1 text-sm text-red-500">{errors.address}</p>}
+                </div>
 
-              <div>
-                <label htmlFor="state" className="block text-sm font-medium text-neutral-700 mb-2">
-                  Estado/Provincia *
-                </label>
-                <input
-                  type="text"
-                  id="state"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 
-                           ${errors.state ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-primary-500'}`}
-                  placeholder="CDMX"
-                />
-                {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
-              </div>
-            </div>
+                {/* Ciudad y Estado */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-neutral-700 mb-2">
+                      Ciudad *
+                    </label>
+                    <input
+                      type="text"
+                      id="city"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 
+                               ${errors.city ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-primary-500'}`}
+                      placeholder="Ciudad de México"
+                    />
+                    {errors.city && <p className="mt-1 text-sm text-red-500">{errors.city}</p>}
+                  </div>
 
-            {/* Código Postal */}
-            <div>
-              <label htmlFor="zipCode" className="block text-sm font-medium text-neutral-700 mb-2">
-                Código Postal *
-              </label>
-              <input
-                type="text"
-                id="zipCode"
-                name="zipCode"
-                value={formData.zipCode}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 
-                         ${errors.zipCode ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-primary-500'}`}
-                placeholder="01000"
-              />
-              {errors.zipCode && <p className="mt-1 text-sm text-red-500">{errors.zipCode}</p>}
-            </div>
+                  <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-neutral-700 mb-2">
+                      Estado/Provincia *
+                    </label>
+                    <input
+                      type="text"
+                      id="state"
+                      name="state"
+                      value={formData.state}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 
+                               ${errors.state ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-primary-500'}`}
+                      placeholder="CDMX"
+                    />
+                    {errors.state && <p className="mt-1 text-sm text-red-500">{errors.state}</p>}
+                  </div>
+                </div>
+
+                {/* Código Postal */}
+                <div>
+                  <label htmlFor="zipCode" className="block text-sm font-medium text-neutral-700 mb-2">
+                    Código Postal *
+                  </label>
+                  <input
+                    type="text"
+                    id="zipCode"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 
+                             ${errors.zipCode ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-primary-500'}`}
+                    placeholder="01000"
+                  />
+                  {errors.zipCode && <p className="mt-1 text-sm text-red-500">{errors.zipCode}</p>}
+                </div>
+
+                {/* Opción de guardar dirección (solo si está autenticado) */}
+                {isAuthenticated && showNewAddressForm && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="saveAddress"
+                      checked={saveNewAddress}
+                      onChange={(e) => setSaveNewAddress(e.target.checked)}
+                      className="w-4 h-4 text-primary-500 rounded focus:ring-primary-500"
+                    />
+                    <label htmlFor="saveAddress" className="text-sm text-neutral-700">
+                      Guardar esta dirección para futuras compras
+                    </label>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Notas */}
             <div>

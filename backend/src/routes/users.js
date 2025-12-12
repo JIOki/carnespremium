@@ -138,4 +138,109 @@ router.get('/:id/orders', requireOwnership(), asyncHandler(async (req, res) => {
   });
 }));
 
+/**
+ * POST /api/users/:id/addresses
+ * Crear nueva dirección
+ */
+router.post('/:id/addresses', requireOwnership(), asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { address1, address2, city, state, postalCode, isDefault } = req.body;
+  const prisma = getPrismaClient();
+
+  // Si es default, quitar default de las demás
+  if (isDefault) {
+    await prisma.address.updateMany({
+      where: { userId: id },
+      data: { isDefault: false }
+    });
+  }
+
+  const address = await prisma.address.create({
+    data: {
+      userId: id,
+      address1,
+      address2,
+      city,
+      state,
+      postalCode,
+      isDefault: isDefault || false
+    }
+  });
+
+  res.status(201).json({
+    success: true,
+    data: address
+  });
+}));
+
+/**
+ * PUT /api/users/:id/addresses/:addressId
+ * Actualizar dirección
+ */
+router.put('/:id/addresses/:addressId', requireOwnership(), asyncHandler(async (req, res) => {
+  const { id, addressId } = req.params;
+  const { address1, address2, city, state, postalCode, isDefault } = req.body;
+  const prisma = getPrismaClient();
+
+  // Verificar que la dirección pertenece al usuario
+  const existing = await prisma.address.findFirst({
+    where: { id: addressId, userId: id }
+  });
+
+  if (!existing) {
+    throw CommonErrors.NotFound('Dirección');
+  }
+
+  // Si es default, quitar default de las demás
+  if (isDefault) {
+    await prisma.address.updateMany({
+      where: { userId: id, id: { not: addressId } },
+      data: { isDefault: false }
+    });
+  }
+
+  const address = await prisma.address.update({
+    where: { id: addressId },
+    data: {
+      address1,
+      address2,
+      city,
+      state,
+      postalCode,
+      isDefault
+    }
+  });
+
+  res.json({
+    success: true,
+    data: address
+  });
+}));
+
+/**
+ * DELETE /api/users/:id/addresses/:addressId
+ * Eliminar dirección
+ */
+router.delete('/:id/addresses/:addressId', requireOwnership(), asyncHandler(async (req, res) => {
+  const { id, addressId } = req.params;
+  const prisma = getPrismaClient();
+
+  const existing = await prisma.address.findFirst({
+    where: { id: addressId, userId: id }
+  });
+
+  if (!existing) {
+    throw CommonErrors.NotFound('Dirección');
+  }
+
+  await prisma.address.delete({
+    where: { id: addressId }
+  });
+
+  res.json({
+    success: true,
+    message: 'Dirección eliminada'
+  });
+}));
+
 module.exports = router;
