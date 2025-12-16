@@ -123,4 +123,28 @@ router.post('/', asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data: order });
 }));
 
+
+router.put('/:id/payment', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { paymentStatus } = req.body;
+  const userRole = req.userRole;
+  const prisma = getPrismaClient();
+
+  if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
+    throw CommonErrors.Forbidden('Solo administradores pueden actualizar el pago');
+  }
+
+  const validStatuses = ['PENDING', 'CAPTURED', 'FAILED', 'REFUNDED', 'COD_PENDING', 'COD_COLLECTED'];
+  if (!validStatuses.includes(paymentStatus)) {
+    throw CommonErrors.ValidationError('Estado de pago inválido');
+  }
+
+  const order = await prisma.order.update({
+    where: { id },
+    data: { paymentStatus }
+  });
+
+  res.json({ success: true, data: order });
+}));
+
 module.exports = router;

@@ -38,9 +38,9 @@ export default function AdminOrders() {
         sortOrder
       });
       
-      setOrders(response.data.orders);
-      setTotal(response.data.pagination.total);
-      setTotalPages(response.data.pagination.totalPages);
+      setOrders(response.data?.orders || []);
+      setTotal(response.data?.pagination?.total || 0);
+      setTotalPages(response.data?.pagination?.totalPages || 1);
     } catch (err: any) {
       setError(err.message || 'Error al cargar órdenes');
     } finally {
@@ -75,8 +75,21 @@ export default function AdminOrders() {
   const paymentStatusColors: { [key: string]: string } = {
     PENDING: 'bg-yellow-100 text-yellow-800',
     PAID: 'bg-green-100 text-green-800',
+    CAPTURED: 'bg-green-100 text-green-800',
+    COD_COLLECTED: 'bg-green-100 text-green-800',
+    COD_PENDING: 'bg-orange-100 text-orange-800',
     FAILED: 'bg-red-100 text-red-800',
     REFUNDED: 'bg-gray-100 text-gray-800',
+  };
+
+  const paymentStatusLabels: { [key: string]: string } = {
+    PENDING: 'Pendiente',
+    PAID: 'Pagado',
+    CAPTURED: 'Pagado',
+    COD_PENDING: 'Contra entrega',
+    COD_COLLECTED: 'Cobrado',
+    FAILED: 'Fallido',
+    REFUNDED: 'Reembolsado',
   };
 
   return (
@@ -274,7 +287,7 @@ export default function AdminOrders() {
                           paymentStatusColors[order.paymentStatus] || 'bg-gray-100 text-gray-800'
                         }`}
                       >
-                        {order.paymentStatus}
+                        {paymentStatusLabels[order.paymentStatus] || order.paymentStatus}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
