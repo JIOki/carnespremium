@@ -92,11 +92,11 @@ export function CartProvider({ children }: CartProviderProps) {
   // Agregar producto al carrito
   const addItem = async (product: Product, quantity = 1, variantId?: string) => {
     setIsLoading(true)
-    
+
     try {
       // Generar ID único para el item del carrito
-      const itemId = variantId 
-        ? `${product.id}-${variantId}` 
+      const itemId = variantId
+        ? `${product.id}-${variantId}`
         : product.id
 
       // Buscar si el item ya existe en el carrito
@@ -107,17 +107,33 @@ export function CartProvider({ children }: CartProviderProps) {
         const newItems = [...items]
         const newQuantity = newItems[existingItemIndex].quantity + quantity
         const newSubtotal = newItems[existingItemIndex].price * newQuantity
-        
+
         newItems[existingItemIndex] = {
           ...newItems[existingItemIndex],
           quantity: newQuantity,
           subtotal: newSubtotal
         }
-        
+
         setItems(newItems)
       } else {
         // Si no existe, agregar nuevo item
-        const price = product.price
+        //const price = product.price
+        // Obtener precio de la variante seleccionada o de la variante por defecto
+        let price = product.price || 0
+
+        if (product.variants && product.variants.length > 0) {
+          if (variantId) {
+            const selectedVariant = product.variants.find(v => v.id === variantId)
+            if (selectedVariant) {
+              price = selectedVariant.price
+            }
+          } else {
+            const defaultVariant = product.variants[0]
+            if (defaultVariant) {
+              price = defaultVariant.price
+            }
+          }
+        }
         const newItem: CartItem = {
           id: itemId,
           productId: product.id,
@@ -127,7 +143,7 @@ export function CartProvider({ children }: CartProviderProps) {
           price,
           subtotal: price * quantity
         }
-        
+
         setItems([...items, newItem])
       }
 
@@ -145,7 +161,7 @@ export function CartProvider({ children }: CartProviderProps) {
   // Eliminar producto del carrito
   const removeItem = async (itemId: string) => {
     setIsLoading(true)
-    
+
     try {
       const newItems = items.filter(item => item.id !== itemId)
       setItems(newItems)
@@ -168,7 +184,7 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     setIsLoading(true)
-    
+
     try {
       const newItems = items.map(item => {
         if (item.id === itemId) {
@@ -180,7 +196,7 @@ export function CartProvider({ children }: CartProviderProps) {
         }
         return item
       })
-      
+
       setItems(newItems)
 
       // TODO: Sincronizar con el backend
@@ -197,10 +213,10 @@ export function CartProvider({ children }: CartProviderProps) {
   // Limpiar carrito
   const clearCart = async () => {
     setIsLoading(true)
-    
+
     try {
       setItems([])
-      
+
       // TODO: Sincronizar con el backend
       // await syncCartWithBackend()
 

@@ -9,9 +9,24 @@ const nextConfig = {
     domains: [
       'localhost',
       'images.unsplash.com',
-      'via.placeholder.com'
+      'via.placeholder.com',      
     ],
-    formats: ['image/webp', 'image/avif']
+      remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+    ],
+    formats: ['image/webp', 'image/avif'],
+    unoptimized: process.env.NODE_ENV === 'development',
   },
 
   // Variables de ambiente públicas

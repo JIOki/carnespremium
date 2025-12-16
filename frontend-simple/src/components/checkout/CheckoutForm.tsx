@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -110,7 +109,7 @@ export default function CheckoutForm({ onComplete }: CheckoutFormProps) {
     if (!user || !token) return
     setLoadingAddresses(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/users/${user.id}/addresses`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api'}/users/${user.id}/addresses`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (response.ok) {
@@ -161,7 +160,7 @@ export default function CheckoutForm({ onComplete }: CheckoutFormProps) {
   const saveAddressToServer = async () => {
     if (!user || !token) return
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/users/${user.id}/addresses`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api'}/users/${user.id}/addresses`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -297,9 +296,23 @@ export default function CheckoutForm({ onComplete }: CheckoutFormProps) {
 
       console.log('Orden a enviar:', orderData)
 
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Enviar orden al backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api'}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify(orderData)
+      })
 
-      const orderId = `ORD-${Date.now()}`
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Error al crear la orden')
+      }
+
+      const result = await response.json()
+      const orderId = result.data?.orderNumber || result.data?.id || `ORD-${Date.now()}`
 
       await clearCart()
 

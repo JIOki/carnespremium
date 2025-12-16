@@ -227,7 +227,7 @@ export default function MyOrdersPage() {
                       📍 Rastrear en Tiempo Real
                     </button>
                     <button
-                      onClick={() => router.push(`/orders/${order.id}`)}
+                      onClick={() => router.push(`/my-orders/${order.id}`)}
                       className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition font-medium"
                     >
                       Ver Detalles
