@@ -1038,24 +1038,27 @@ async function checkStockAlerts(productId, variantId) {
       return null;
     }
 
-    // Verificar si ya existe una alerta activa para este variante
+    // Verificar si ya existe una alerta para este variante (activa, reconocida o resuelta)
     const existingAlert = await prisma.stockAlert.findFirst({
       where: {
         variantId,
-        status: 'ACTIVE',
         alertType
-      }
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
     if (existingAlert) {
-      // Actualizar alerta existente
+      // Reactivar si estaba resuelta/reconocida, o actualizar si activa
       return await prisma.stockAlert.update({
         where: { id: existingAlert.id },
         data: {
           currentStock,
           minStock,
           reorderPoint,
-          severity
+          severity,
+          status: 'ACTIVE', // Reactivar si el problema persiste
+          resolvedAt: null,
+          resolution: null
         }
       });
     }
@@ -1082,4 +1085,26 @@ async function checkStockAlerts(productId, variantId) {
   }
 }
 
+// Función para ejecutar chequeo de alertas (llamada por el servidor)
+async function runStockAlertCheck() {
+  const products = await prisma.product.findMany({
+    where: { isActive: true },
+    include: {
+      variants: {
+        where: { isActive: true }
+      }
+    }
+  });
+
+  let alertsProcessed = 0;
+  for (const product of products) {
+    for (const variant of product.variants) {
+      await checkStockAlerts(product.id, variant.id);
+      alertsProcessed++;
+    }
+  }
+  return alertsProcessed;
+}
+
 module.exports = router;
+module.exports.runStockAlertCheck = runStockAlertCheck;

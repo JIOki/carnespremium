@@ -36,7 +36,7 @@ class AnalyticsService {
       prisma.order.aggregate({
         where: {
           ...dateFilter,
-          status: { notIn: ['cancelled', 'refunded'] }
+          status: { notIn: ['CANCELLED', 'REFUNDED'] }
         },
         _sum: { total: true }
       }),
@@ -49,20 +49,20 @@ class AnalyticsService {
       // Total de clientes
       prisma.user.count({
         where: {
-          role: 'customer',
+          role: 'CUSTOMER',
           ...dateFilter
         }
       }),
 
       // Total de productos activos
       prisma.product.count({
-        where: { active: true }
+        where: { isActive: true }
       }),
 
       // Órdenes pendientes
       prisma.order.count({
         where: {
-          status: 'pending',
+          status: 'PENDING',
           ...dateFilter
         }
       }),
@@ -70,7 +70,7 @@ class AnalyticsService {
       // Órdenes completadas
       prisma.order.count({
         where: {
-          status: 'delivered',
+          status: 'DELIVERED',
           ...dateFilter
         }
       }),
@@ -78,7 +78,7 @@ class AnalyticsService {
       // Órdenes canceladas
       prisma.order.count({
         where: {
-          status: { in: ['cancelled', 'refunded'] },
+          status: { in: ['CANCELLED', 'REFUNDED'] },
           ...dateFilter
         }
       }),
@@ -87,7 +87,7 @@ class AnalyticsService {
       prisma.order.aggregate({
         where: {
           ...dateFilter,
-          status: { notIn: ['cancelled', 'refunded'] }
+          status: { notIn: ['CANCELLED', 'REFUNDED'] }
         },
         _avg: { total: true }
       }),
@@ -112,9 +112,10 @@ class AnalyticsService {
       }),
 
       // Productos con stock bajo
-      prisma.inventory.findMany({
+      prisma.productVariant.findMany({
         where: {
-          quantity: { lte: 10 }
+          stock: { lte: 10 },
+          isActive: true
         },
         include: {
           product: {
@@ -171,7 +172,7 @@ class AnalyticsService {
       },
       _sum: {
         quantity: true,
-        subtotal: true
+        total: true
       },
       _count: {
         id: true
@@ -194,7 +195,6 @@ class AnalyticsService {
         id: true,
         name: true,
         sku: true,
-        price: true,
         imageUrl: true,
         category: {
           select: {
@@ -211,7 +211,7 @@ class AnalyticsService {
         productId: item.productId,
         product,
         totalQuantitySold: item._sum.quantity || 0,
-        totalRevenue: item._sum.subtotal || 0,
+        totalRevenue: item._sum.total || 0,
         orderCount: item._count.id
       };
     });
@@ -247,7 +247,7 @@ class AnalyticsService {
           gte: startDate,
           lte: now
         },
-        status: { notIn: ['cancelled', 'refunded'] }
+        status: { notIn: ['CANCELLED', 'REFUNDED'] }
       },
       select: {
         createdAt: true,
@@ -316,11 +316,15 @@ class AnalyticsService {
             email: true
           }
         },
-        coupon: {
-          select: {
-            code: true,
-            discountType: true,
-            discountValue: true
+        couponUsages: {
+          include: {
+            coupon: {
+              select: {
+                code: true,
+                type: true,
+                value: true
+              }
+            }
           }
         }
       },
@@ -392,13 +396,13 @@ class AnalyticsService {
     ] = await Promise.all([
       // Total de clientes
       prisma.user.count({
-        where: { role: 'customer' }
+        where: { role: 'CUSTOMER' }
       }),
 
       // Clientes nuevos en el período
       prisma.user.count({
         where: {
-          role: 'customer',
+          role: 'CUSTOMER',
           ...dateFilter
         }
       }),
@@ -440,7 +444,7 @@ class AnalyticsService {
   async getTopCustomers(limit = 10, dateFilter = {}) {
     const customers = await prisma.user.findMany({
       where: {
-        role: 'customer'
+        role: 'CUSTOMER'
       },
       select: {
         id: true,
@@ -460,7 +464,7 @@ class AnalyticsService {
     // Calcular totales
     const customersWithStats = customers.map(customer => {
       const completedOrders = customer.orders.filter(
-        o => !['cancelled', 'refunded'].includes(o.status)
+        o => !['CANCELLED', 'REFUNDED'].includes(o.status)
       );
       
       return {
@@ -490,7 +494,7 @@ class AnalyticsService {
   async getCustomerSegmentation(dateFilter = {}) {
     const customers = await prisma.user.findMany({
       where: {
-        role: 'customer'
+        role: 'CUSTOMER'
       },
       select: {
         id: true,
@@ -513,7 +517,7 @@ class AnalyticsService {
 
     customers.forEach(customer => {
       const orderCount = customer.orders.filter(
-        o => !['cancelled', 'refunded'].includes(o.status)
+        o => !['CANCELLED', 'REFUNDED'].includes(o.status)
       ).length;
 
       if (orderCount === 0) {
@@ -538,25 +542,27 @@ class AnalyticsService {
    * @returns {Object} Métricas de retención
    */
   async getCustomerRetention(dateFilter = {}) {
-    const { startDate, endDate } = dateFilter;
+    const startDate = dateFilter.startDate ? new Date(dateFilter.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = dateFilter.endDate ? new Date(dateFilter.endDate) : new Date();
 
     // Clientes que ordenaron en el período anterior
+    const periodLength = endDate.getTime() - startDate.getTime();
     const previousPeriod = {
-      gte: new Date(startDate.getTime() - (endDate.getTime() - startDate.getTime())),
+      gte: new Date(startDate.getTime() - periodLength),
       lte: startDate
     };
 
     const [customersThisPeriod, customersPreviousPeriod] = await Promise.all([
       prisma.user.findMany({
         where: {
-          role: 'customer',
+          role: 'CUSTOMER',
           orders: {
             some: {
               createdAt: {
                 gte: startDate,
                 lte: endDate
               },
-              status: { notIn: ['cancelled', 'refunded'] }
+              status: { notIn: ['CANCELLED', 'REFUNDED'] }
             }
           }
         },
@@ -565,11 +571,11 @@ class AnalyticsService {
 
       prisma.user.findMany({
         where: {
-          role: 'customer',
+          role: 'CUSTOMER',
           orders: {
             some: {
               createdAt: previousPeriod,
-              status: { notIn: ['cancelled', 'refunded'] }
+              status: { notIn: ['CANCELLED', 'REFUNDED'] }
             }
           }
         },
@@ -607,24 +613,17 @@ class AnalyticsService {
    */
   async getInventoryReport() {
     const [
-      allInventory,
-      lowStockProducts,
-      outOfStockProducts,
-      totalValue,
-      categoryStats
+      allVariants,
+      lowStockCount,
+      outOfStockCount
     ] = await Promise.all([
-      // Todo el inventario
-      prisma.inventory.findMany({
+      // Todas las variantes con stock
+      prisma.productVariant.findMany({
+        where: { isActive: true },
         include: {
           product: {
             include: {
               category: true
-            }
-          },
-          movements: {
-            take: 5,
-            orderBy: {
-              createdAt: 'desc'
             }
           }
         },
@@ -635,57 +634,51 @@ class AnalyticsService {
         }
       }),
 
-      // Productos con stock bajo (≤10 unidades)
-      prisma.inventory.count({
+      // Variantes con stock bajo (≤10 unidades)
+      prisma.productVariant.count({
         where: {
-          quantity: {
+          isActive: true,
+          stock: {
             lte: 10,
             gt: 0
           }
         }
       }),
 
-      // Productos sin stock
-      prisma.inventory.count({
+      // Variantes sin stock
+      prisma.productVariant.count({
         where: {
-          quantity: 0
+          isActive: true,
+          stock: 0
         }
-      }),
-
-      // Valor total del inventario
-      prisma.$queryRaw`
-        SELECT SUM(i.quantity * p.price) as totalValue
-        FROM Inventory i
-        INNER JOIN Product p ON i.productId = p.id
-        WHERE i.quantity > 0
-      `,
-
-      // Estadísticas por categoría
-      this.getInventoryByCategory()
+      })
     ]);
+
+    // Calcular valor total
+    const totalValue = allVariants.reduce((sum, v) => sum + (v.stock * v.price), 0);
 
     return {
       overview: {
-        totalProducts: allInventory.length,
-        lowStockProducts,
-        outOfStockProducts,
-        totalValue: totalValue[0]?.totalValue || 0
+        totalProducts: allVariants.length,
+        lowStockProducts: lowStockCount,
+        outOfStockProducts: outOfStockCount,
+        totalValue
       },
-      inventory: allInventory.map(item => ({
+      inventory: allVariants.map(item => ({
         id: item.id,
         productId: item.productId,
         productName: item.product.name,
-        sku: item.product.sku,
-        category: item.product.category.name,
-        quantity: item.quantity,
-        minStock: item.minStock,
-        maxStock: item.maxStock,
-        price: item.product.price,
-        totalValue: item.quantity * parseFloat(item.product.price),
-        status: this.getStockStatus(item.quantity, item.minStock),
-        lastMovements: item.movements
+        variantName: item.name,
+        sku: item.sku,
+        category: item.product.category?.name || 'Sin categoría',
+        quantity: item.stock,
+        minStock: item.product.minStock || 0,
+        maxStock: item.product.maxStock || 1000,
+        price: item.price,
+        totalValue: item.stock * item.price,
+        status: this.getStockStatus(item.stock, item.product.minStock || 0)
       })),
-      categoryStats
+      categoryStats: []
     };
   }
 
@@ -769,7 +762,7 @@ class AnalyticsService {
       prisma.order.aggregate({
         where: {
           ...dateFilter,
-          status: { notIn: ['cancelled', 'refunded'] }
+          status: { notIn: ['CANCELLED', 'REFUNDED'] }
         },
         _avg: {
           total: true
@@ -813,7 +806,7 @@ class AnalyticsService {
       // Aproximamos visitantes únicos por usuarios que iniciaron sesión
       prisma.user.count({
         where: {
-          role: 'customer',
+          role: 'CUSTOMER',
           lastLogin: dateFilter
         }
       }),
@@ -821,7 +814,7 @@ class AnalyticsService {
       prisma.order.count({
         where: {
           ...dateFilter,
-          status: { notIn: ['cancelled', 'refunded'] }
+          status: { notIn: ['CANCELLED', 'REFUNDED'] }
         }
       })
     ]);
@@ -844,12 +837,12 @@ class AnalyticsService {
   async getCustomerLifetimeValue() {
     const customers = await prisma.user.findMany({
       where: {
-        role: 'customer'
+        role: 'CUSTOMER'
       },
       select: {
         orders: {
           where: {
-            status: { notIn: ['cancelled', 'refunded'] }
+            status: { notIn: ['CANCELLED', 'REFUNDED'] }
           },
           select: {
             total: true
@@ -878,7 +871,7 @@ class AnalyticsService {
       where: {
         ...dateFilter,
         couponId: { not: null },
-        status: { notIn: ['cancelled', 'refunded'] }
+        status: { notIn: ['CANCELLED', 'REFUNDED'] }
       },
       select: {
         total: true,
@@ -886,8 +879,8 @@ class AnalyticsService {
         coupon: {
           select: {
             code: true,
-            discountType: true,
-            discountValue: true
+            type: true,
+            value: true
           }
         }
       }
@@ -960,7 +953,7 @@ class AnalyticsService {
     const deliveries = await prisma.order.findMany({
       where: {
         ...dateFilter,
-        status: 'delivered'
+        status: 'DELIVERED'
       },
       select: {
         createdAt: true,

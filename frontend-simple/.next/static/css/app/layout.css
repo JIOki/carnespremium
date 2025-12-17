@@ -1928,6 +1928,10 @@ video {
   margin-left: -1.5rem;
   margin-right: -1.5rem;
 }
+.mx-4 {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
@@ -2124,6 +2128,9 @@ video {
 }
 .h-6 {
   height: 1.5rem;
+}
+.h-64 {
+  height: 16rem;
 }
 .h-8 {
   height: 2rem;
@@ -3292,6 +3299,9 @@ video {
 .text-right {
   text-align: right;
 }
+.font-mono {
+  font-family: Fira Code, monospace;
+}
 .font-serif {
   font-family: Lora, serif;
 }
@@ -4095,6 +4105,10 @@ h1, h2, h3, h4, h5, h6,
 .hover\:text-gray-500:hover {
   --tw-text-opacity: 1;
   color: rgb(107 114 128 / var(--tw-text-opacity, 1));
+}
+.hover\:text-gray-600:hover {
+  --tw-text-opacity: 1;
+  color: rgb(75 85 99 / var(--tw-text-opacity, 1));
 }
 .hover\:text-gray-700:hover {
   --tw-text-opacity: 1;

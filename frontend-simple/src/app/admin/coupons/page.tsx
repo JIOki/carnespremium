@@ -344,12 +344,12 @@ export default function CouponsAdminPage() {
                       >
                         Ver
                       </Link>
-                      <Link
+                     {/* <Link
                         href={`/admin/coupons/${coupon.id}/edit`}
                         className="text-indigo-600 hover:text-indigo-900"
                       >
                         Editar
-                      </Link>
+                      </Link> */}
                       <button
                         onClick={() => handleToggleStatus(coupon)}
                         className={`${coupon.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}`}

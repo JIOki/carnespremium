@@ -261,6 +261,7 @@ model Order {
   tracking        OrderTracking[]
   delivery        Delivery?
   payment         Payment?
+  couponUsages    CouponUsage[]
 
   @@map("orders")
 }
@@ -512,6 +513,7 @@ model CouponUsage {
 
   // Relaciones
   coupon      Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  order       Order?   @relation(fields: [orderId], references: [id])
 
   @@map("coupon_usages")
 }

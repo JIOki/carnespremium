@@ -257,7 +257,7 @@ class InventoryService {
     success: number;
     errors: number;
     results: any[];
-    errors: any[];
+    errorDetails: any[];
   }> {
     const response = await api.post('/inventory/bulk-adjust', data);
     return response.data;
@@ -335,7 +335,7 @@ class InventoryService {
     };
   }> {
     const response = await api.get('/inventory/alerts', { params });
-    return response.data;
+    return response.data.data || response.data;
   }
 
   /**

@@ -607,12 +607,11 @@ router.post('/products/:id/variants', asyncHandler(async (req, res) => {
     name: Joi.string().required(),
     sku: Joi.string().required(),
     price: Joi.number().positive().required(),
-    compareAtPrice: Joi.number().positive().allow(null),
+    comparePrice: Joi.number().positive().allow(null),
     stock: Joi.number().integer().default(0),
     weight: Joi.number().positive().allow(null),
     imageUrl: Joi.string().uri().allow('', null),
-    isActive: Joi.boolean().default(true),
-    reorderPoint: Joi.number().integer().default(10)
+    isActive: Joi.boolean().default(true)
   });
   
   const { error, value } = schema.validate(req.body);
@@ -648,12 +647,11 @@ router.put('/products/:id/variants/:variantId', asyncHandler(async (req, res) =>
     name: Joi.string(),
     sku: Joi.string(),
     price: Joi.number().positive(),
-    compareAtPrice: Joi.number().positive().allow(null),
+    comparePrice: Joi.number().positive().allow(null),
     stock: Joi.number().integer(),
     weight: Joi.number().positive().allow(null),
     imageUrl: Joi.string().uri().allow('', null),
-    isActive: Joi.boolean(),
-    reorderPoint: Joi.number().integer()
+    isActive: Joi.boolean()
   }).min(1);
   
   const { error, value } = schema.validate(req.body);

@@ -139,9 +139,21 @@ export default function SuppliersPage() {
     }
   };
 
+  const handleActivate = async (id: string) => {
+    if (!confirm('¿Estás seguro de activar este proveedor?')) return;
+
+    try {
+      await inventoryService.updateSupplier(id, { isActive: true });
+      toast.success('Proveedor activado');
+      fetchSuppliers();
+    } catch (error) {
+      toast.error('Error al activar proveedor');
+    }
+  };
+
   const handleViewDetails = (supplier: Supplier) => {
     // Aquí podrías navegar a una página de detalle o abrir un modal
-    toast.info(`Ver detalles de ${supplier.name}`);
+    toast(`Ver detalles de ${supplier.name}`);
   };
 
   return (
@@ -306,24 +318,31 @@ export default function SuppliersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm font-medium space-x-2">
-                        <button
+                        {/*<button
                           onClick={() => handleViewDetails(supplier)}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           Ver
-                        </button>
+                        </button>*/}
                         <button
                           onClick={() => openEditModal(supplier)}
                           className="text-indigo-600 hover:text-indigo-900"
                         >
                           Editar
                         </button>
-                        {supplier.isActive && (
+                        {supplier.isActive ? (
                           <button
                             onClick={() => handleDelete(supplier.id)}
                             className="text-red-600 hover:text-red-900"
                           >
                             Desactivar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleActivate(supplier.id)}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            Activar
                           </button>
                         )}
                       </td>
@@ -570,3 +589,6 @@ export default function SuppliersPage() {
     </div>
   );
 }
+
+
+

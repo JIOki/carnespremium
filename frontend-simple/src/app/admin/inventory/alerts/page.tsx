@@ -38,8 +38,8 @@ export default function InventoryAlertsPage() {
       }
 
       const response = await inventoryService.getAlerts(params);
-      setAlerts(response.alerts);
-      setTotalPages(response.pagination.pages);
+      setAlerts(response?.alerts || []);
+      setTotalPages(response?.pagination?.pages || 1);
     } catch (error) {
       console.error('Error fetching alerts:', error);
       toast.error('Error al cargar alertas');

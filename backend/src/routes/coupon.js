@@ -12,7 +12,7 @@ const asyncHandler = require('../middleware/asyncHandler');
  * @desc    Obtener todos los cupones (Admin)
  * @access  Private (ADMIN)
  */
-router.get('/admin/all', authMiddleware, requireRole('ADMIN'), asyncHandler(async (req, res) => {
+router.get('/admin/all', authMiddleware, requireRole('ADMIN', 'SUPER_ADMIN'), asyncHandler(async (req, res) => {
   const { search, type, isActive, page = 1, limit = 20 } = req.query;
   
   const where = {};
@@ -62,11 +62,51 @@ router.get('/admin/all', authMiddleware, requireRole('ADMIN'), asyncHandler(asyn
 }));
 
 /**
+ * @route   GET /api/coupon/admin/stats
+ * @desc    Obtener estadísticas de cupones
+ * @access  Private (ADMIN)
+ */
+router.get('/admin/stats', authMiddleware, requireRole('ADMIN', 'SUPER_ADMIN'), asyncHandler(async (req, res) => {
+  const [totalCoupons, activeCoupons, totalUsages, totalDiscount] = await Promise.all([
+    prisma.coupon.count(),
+    prisma.coupon.count({ where: { isActive: true } }),
+    prisma.couponUsage.count(),
+    prisma.couponUsage.aggregate({
+      _sum: { discountAmount: true }
+    })
+  ]);
+
+  const topCoupons = await prisma.coupon.findMany({
+    orderBy: { timesUsed: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      code: true,
+      type: true,
+      timesUsed: true,
+      totalDiscount: true
+    }
+  });
+
+  res.json({
+    success: true,
+    data: {
+      totalCoupons,
+      activeCoupons,
+      inactiveCoupons: totalCoupons - activeCoupons,
+      totalUsages,
+      totalDiscount: totalDiscount._sum.discountAmount || 0,
+      topCoupons
+    }
+  });
+}));
+
+/**
  * @route   GET /api/coupon/admin/:id
  * @desc    Obtener detalles de un cupón específico
  * @access  Private (ADMIN)
  */
-router.get('/admin/:id', authMiddleware, requireRole('ADMIN'), asyncHandler(async (req, res) => {
+router.get('/admin/:id', authMiddleware, requireRole('ADMIN', 'SUPER_ADMIN'), asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const coupon = await prisma.coupon.findUnique({
@@ -100,7 +140,7 @@ router.get('/admin/:id', authMiddleware, requireRole('ADMIN'), asyncHandler(asyn
  * @desc    Crear un nuevo cupón
  * @access  Private (ADMIN)
  */
-router.post('/admin/create', authMiddleware, requireRole('ADMIN'), asyncHandler(async (req, res) => {
+router.post('/admin/create', authMiddleware, requireRole('ADMIN', 'SUPER_ADMIN'), asyncHandler(async (req, res) => {
   const {
     code,
     description,
@@ -195,7 +235,7 @@ router.post('/admin/create', authMiddleware, requireRole('ADMIN'), asyncHandler(
  * @desc    Actualizar un cupón existente
  * @access  Private (ADMIN)
  */
-router.put('/admin/:id', authMiddleware, requireRole('ADMIN'), asyncHandler(async (req, res) => {
+router.put('/admin/:id', authMiddleware, requireRole('ADMIN', 'SUPER_ADMIN'), asyncHandler(async (req, res) => {
   const { id } = req.params;
   const {
     description,
@@ -255,7 +295,7 @@ router.put('/admin/:id', authMiddleware, requireRole('ADMIN'), asyncHandler(asyn
  * @desc    Eliminar un cupón
  * @access  Private (ADMIN)
  */
-router.delete('/admin/:id', authMiddleware, requireRole('ADMIN'), asyncHandler(async (req, res) => {
+router.delete('/admin/:id', authMiddleware, requireRole('ADMIN', 'SUPER_ADMIN'), asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const coupon = await prisma.coupon.findUnique({ where: { id } });
@@ -272,47 +312,6 @@ router.delete('/admin/:id', authMiddleware, requireRole('ADMIN'), asyncHandler(a
   res.json({
     success: true,
     message: 'Cupón eliminado exitosamente'
-  });
-}));
-
-/**
- * @route   GET /api/coupon/admin/stats
- * @desc    Obtener estadísticas de cupones
- * @access  Private (ADMIN)
- */
-router.get('/admin/stats', authMiddleware, requireRole('ADMIN'), asyncHandler(async (req, res) => {
-  const [totalCoupons, activeCoupons, totalUsages, totalDiscount] = await Promise.all([
-    prisma.coupon.count(),
-    prisma.coupon.count({ where: { isActive: true } }),
-    prisma.couponUsage.count(),
-    prisma.couponUsage.aggregate({
-      _sum: { discountAmount: true }
-    })
-  ]);
-
-  // Top cupones más usados
-  const topCoupons = await prisma.coupon.findMany({
-    orderBy: { timesUsed: 'desc' },
-    take: 5,
-    select: {
-      id: true,
-      code: true,
-      type: true,
-      timesUsed: true,
-      totalDiscount: true
-    }
-  });
-
-  res.json({
-    success: true,
-    data: {
-      totalCoupons,
-      activeCoupons,
-      inactiveCoupons: totalCoupons - activeCoupons,
-      totalUsages,
-      totalDiscount: totalDiscount._sum.discountAmount || 0,
-      topCoupons
-    }
   });
 }));
 

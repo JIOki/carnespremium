@@ -225,6 +225,18 @@ async function startServer() {
     SocketService.initialize(io);
     console.log('✅ Socket.IO configurado');
 
+    // Iniciar chequeo automático de alertas de inventario (cada 5 minutos)
+    const { runStockAlertCheck } = require('./routes/inventory');
+    setInterval(async () => {
+      try {
+        await runStockAlertCheck();
+        console.log('🔔 Chequeo automático de alertas de stock completado');
+      } catch (error) {
+        console.error('Error en chequeo automático de alertas:', error.message);
+      }
+    }, 5 * 60 * 1000); // 5 minutos
+    console.log('✅ Chequeo automático de alertas configurado (cada 5 min)');
+
     // Iniciar servidor
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, () => {

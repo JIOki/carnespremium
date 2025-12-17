@@ -31,19 +31,22 @@ const createCategorySchema = Joi.object({
  */
 router.get('/', asyncHandler(async (req, res) => {
   const prisma = getPrismaClient();
+  const { all } = req.query; // Para admin: ?all=true trae todas
   
-  // Intentar obtener de cache
-  const cached = await RedisService.get('categories');
-  if (cached) {
-    return res.json({
-      success: true,
-      data: cached,
-      fromCache: true
-    });
+  // Solo usar cache si no es admin pidiendo todas
+  if (!all) {
+    const cached = await RedisService.get('categories');
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        fromCache: true
+      });
+    }
   }
 
   const categories = await prisma.category.findMany({
-    where: { isActive: true },
+    where: all === 'true' ? {} : { isActive: true },
     orderBy: { sortOrder: 'asc' },
     include: {
       _count: {
@@ -60,9 +63,11 @@ router.get('/', asyncHandler(async (req, res) => {
   const processedCategories = categories.map(category => ({
     id: category.id,
     name: category.name,
+    slug: category.slug,
     description: category.description,
-    image: category.image,
-    productCount: category._count.products,
+    imageUrl: category.imageUrl,
+    isActive: category.isActive,
+    _count: { products: category._count.products },
     sortOrder: category.sortOrder
   }));
 
@@ -142,14 +147,19 @@ router.get('/:id', asyncHandler(async (req, res) => {
   const prisma = getPrismaClient();
 
   const category = await prisma.category.findUnique({
-    where: { 
-      id, 
-      isActive: true 
-    }
+    where: { id }
   });
 
   if (!category) {
     throw CommonErrors.NotFound('Categoría');
+  }
+
+  // Si la categoría está inactiva, solo devolver info básica (sin productos)
+  if (!category.isActive) {
+    return res.json({
+      success: true,
+      data: category
+    });
   }
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -164,29 +174,21 @@ router.get('/:id', asyncHandler(async (req, res) => {
       select: {
         id: true,
         name: true,
-        shortDescription: true,
-        price: true,
-        comparePrice: true,
-        weight: true,
-        unit: true,
-        stock: true,
+        slug: true,
+        description: true,
+        imageUrl: true,
+        isActive: true,
         isFeatured: true,
-        tags: true,
-        cut: true,
-        grade: true,
-        origin: true,
-        images: {
-          where: { isPrimary: true },
+        averageRating: true,
+        totalReviews: true,
+        variants: {
           select: {
-            url: true,
-            altText: true
+            id: true,
+            name: true,
+            price: true,
+            stock: true
           },
           take: 1
-        },
-        reviews: {
-          select: {
-            rating: true
-          }
         }
       },
       skip,
@@ -203,19 +205,13 @@ router.get('/:id', asyncHandler(async (req, res) => {
     })
   ]);
 
-  // Procesar productos con ratings
-  const productsWithRatings = products.map(product => {
-    const ratings = product.reviews.map(r => r.rating);
-    const averageRating = ratings.length > 0 
-      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-      : 0;
-    
-    const { reviews, ...productWithoutReviews } = product;
+  // Procesar productos con precio de variante principal
+  const productsWithPrice = products.map(product => {
+    const mainVariant = product.variants?.[0];
     return {
-      ...productWithoutReviews,
-      averageRating: parseFloat(averageRating.toFixed(1)),
-      reviewCount: ratings.length,
-      primaryImage: product.images[0] || null
+      ...product,
+      price: mainVariant?.price || 0,
+      stock: mainVariant?.stock || 0
     };
   });
 
@@ -225,7 +221,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
     success: true,
     data: {
       category,
-      products: productsWithRatings,
+      products: productsWithPrice,
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -311,6 +307,67 @@ router.get('/:id/filters', asyncHandler(async (req, res) => {
       origins: origins.sort(),
       tags: tags.sort()
     }
+  });
+}));
+
+/**
+ * PUT /api/categories/:id
+ * Actualizar una categoría
+ */
+router.put('/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, slug, description, imageUrl, isActive } = req.body;
+  const prisma = getPrismaClient();
+
+  const category = await prisma.category.findUnique({ where: { id } });
+  if (!category) {
+    throw CommonErrors.NotFound('Categoría');
+  }
+
+  const updated = await prisma.category.update({
+    where: { id },
+    data: {
+      name: name || category.name,
+      slug: slug || category.slug,
+      description: description !== undefined ? description : category.description,
+      imageUrl: imageUrl !== undefined ? imageUrl : category.imageUrl,
+      isActive: isActive !== undefined ? isActive : category.isActive
+    }
+  });
+
+  res.json({
+    success: true,
+    message: 'Categoría actualizada',
+    data: updated
+  });
+}));
+
+/**
+ * DELETE /api/categories/:id
+ * Eliminar una categoría
+ */
+router.delete('/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const prisma = getPrismaClient();
+
+  const category = await prisma.category.findUnique({
+    where: { id },
+    include: { _count: { select: { products: true } } }
+  });
+
+  if (!category) {
+    throw CommonErrors.NotFound('Categoría');
+  }
+
+  if (category._count.products > 0) {
+    throw CommonErrors.BadRequest(`No se puede eliminar. Tiene ${category._count.products} productos asociados.`);
+  }
+
+  await prisma.category.delete({ where: { id } });
+
+  res.json({
+    success: true,
+    message: 'Categoría eliminada'
   });
 }));
 
