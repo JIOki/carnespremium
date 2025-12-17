@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { User, LogOut, Package, Heart, Settings, ChevronDown } from 'lucide-react'
+import { User, LogOut, Package, Heart, Settings, ChevronDown, Shield } from 'lucide-react'
 
 export default function UserMenu() {
   const { user, isAuthenticated, logout } = useAuth()
@@ -72,6 +72,18 @@ export default function UserMenu() {
 
           {/* Menu Items */}
           <div className="py-2">
+            {/* Admin Link - solo para ADMIN y SUPER_ADMIN */}
+            {(user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
+              <Link
+                href="/admin"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center px-4 py-2 text-sm text-primary-600 hover:bg-primary-50 font-medium transition-colors"
+              >
+                <Shield className="w-4 h-4 mr-3" />
+                Panel Admin
+              </Link>
+            )}
+
             <Link
               href="/account/membership"
               onClick={() => setIsOpen(false)}

@@ -1,11 +1,9 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/busqueda/page": "app/busqueda/page.js",
-  "/gamification/page": "app/gamification/page.js",
-  "/notifications/page": "app/notifications/page.js",
   "/page": "app/page.js",
-  "/admin/products/page": "app/admin/products/page.js",
-  "/admin/products/[id]/page": "app/admin/products/[id]/page.js",
+  "/auth/login/page": "app/auth/login/page.js",
   "/admin/page": "app/admin/page.js",
-  "/admin/orders/[id]/page": "app/admin/orders/[id]/page.js"
+  "/admin/products/page": "app/admin/products/page.js",
+  "/admin/orders/page": "app/admin/orders/page.js",
+  "/admin/users/page": "app/admin/users/page.js"
 }

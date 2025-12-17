@@ -8,7 +8,7 @@ interface User {
   email: string
   name: string
   phone?: string
-  role: 'CUSTOMER' | 'ADMIN' | 'DRIVER'
+  role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN' | 'DRIVER'
 }
 
 interface AuthContextType {
@@ -52,6 +52,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (savedToken && savedUser) {
           setToken(savedToken)
           setUser(JSON.parse(savedUser))
+          // Sincronizar cookie para el middleware
+          document.cookie = `token=${savedToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
         }
       } catch (error) {
         console.error('Error loading user from localStorage:', error)
@@ -68,9 +70,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (user && token) {
       localStorage.setItem('token', token)
       localStorage.setItem('user', JSON.stringify(user))
+      // Guardar en cookie para middleware de seguridad
+      document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
     } else {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      document.cookie = 'token=; path=/; max-age=0'
     }
   }, [user, token])
 
