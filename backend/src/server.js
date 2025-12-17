@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
@@ -38,13 +39,12 @@ const subscriptionRoutes = require('./routes/subscriptions');
 const recommendationRoutes = require('./routes/recommendations');
 const membershipRoutes = require('./routes/memberships');
 const analyticsRoutes = require('./routes/analytics');
+const chatRoutes = require('./routes/chat');
 
 // Importar servicios
 const { initializeDatabase } = require('./database/connection');
 const RedisService = require('./services/RedisService');
 const SocketService = require('./services/SocketService');
-const chatRoutes = require('./routes/chat');
-
 
 const app = express();
 const server = createServer(app);
@@ -52,17 +52,22 @@ const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
       ? ['https://tu-dominio.com'] 
-      : ['http://localhost:3000', 'http://localhost:3001'],
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
     methods: ['GET', 'POST']
   }
 });
 
 // ==================== CONFIGURACIÓN MIDDLEWARE ====================
 
-// Seguridad
+// Seguridad - Helmet configurado
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true } : false
 }));
+
+// Cookie parser para HTTPOnly cookies
+app.use(cookieParser());
 
 // Compresión GZIP
 app.use(compression());
@@ -71,7 +76,7 @@ app.use(compression());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://tu-dominio.com'] 
-    : ['http://localhost:3000', 'http://localhost:3001'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
   credentials: true
 }));
 

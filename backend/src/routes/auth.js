@@ -139,12 +139,20 @@ router.post('/register', asyncHandler(async (req, res) => {
       loginAt: new Date().toISOString()
     });
 
+    // Configurar cookie HTTPOnly
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+    });
+
     res.status(201).json({
       success: true,
       message: 'Usuario registrado exitosamente',
       data: {
         user: result,
-        token
+        token // También enviamos el token para compatibilidad
       }
     });
 
@@ -211,12 +219,20 @@ router.post('/login', authLimiter, asyncHandler(async (req, res) => {
   // Respuesta (sin password)
   const { password: _, ...userWithoutPassword } = user;
   
+  // Configurar cookie HTTPOnly
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+  });
+
   res.json({
     success: true,
     message: 'Inicio de sesión exitoso',
     data: {
       user: userWithoutPassword,
-      token
+      token // También enviamos el token para compatibilidad
     }
   });
 }));
@@ -226,11 +242,14 @@ router.post('/login', authLimiter, asyncHandler(async (req, res) => {
  * Cerrar sesión
  */
 router.post('/logout', asyncHandler(async (req, res) => {
+  // Obtener token de header o cookie
   const authHeader = req.headers.authorization;
+  const cookieToken = req.cookies?.token;
+  const token = (authHeader && authHeader.startsWith('Bearer ')) 
+    ? authHeader.substring(7) 
+    : cookieToken;
   
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    
+  if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       // Eliminar sesión de Redis
@@ -239,6 +258,13 @@ router.post('/logout', asyncHandler(async (req, res) => {
       // Ignorar errores de token en logout
     }
   }
+
+  // Limpiar cookie
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
 
   res.json({
     success: true,

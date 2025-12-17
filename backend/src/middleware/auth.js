@@ -6,24 +6,25 @@ const { getPrismaClient } = require('../database/connection');
  */
 const authMiddleware = async (req, res, next) => {
   try {
-    // Extraer token del header Authorization
+    // Extraer token del header Authorization o cookie HTTPOnly
     const authHeader = req.headers.authorization;
+    const cookieToken = req.cookies?.token;
     
-    if (!authHeader) {
+    let token = null;
+    
+    // Prioridad: Header > Cookie
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (cookieToken) {
+      token = cookieToken;
+    }
+    
+    if (!token) {
       return res.status(401).json({
         error: 'Token de acceso requerido',
         code: 'MISSING_TOKEN'
       });
     }
-
-    if (!authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: 'Formato de token inválido. Use: Bearer <token>',
-        code: 'INVALID_TOKEN_FORMAT'
-      });
-    }
-
-    const token = authHeader.substring(7); // Remover "Bearer "
 
     // Verificar token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -158,12 +159,18 @@ const requireOwnership = (resourceIdParam = 'id') => {
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    const cookieToken = req.cookies?.token;
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let token = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (cookieToken) {
+      token = cookieToken;
+    }
+    
+    if (!token) {
       return next(); // Continuar sin autenticación
     }
-
-    const token = authHeader.substring(7);
     
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
